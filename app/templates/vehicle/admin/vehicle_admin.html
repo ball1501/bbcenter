@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin จัดการทริป - BBCenter</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F0F2F5;
+            --surface: #FFFFFF;
+            --border: #E4E7ED;
+            --text: #1A1D23;
+            --muted: #6B7280;
+            --vehicle: #8B5CF6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Sarabun', sans-serif;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        .page-hero {
+            background: linear-gradient(135deg, #3B1F8C 0%, #8B5CF6 60%, #A78BFA 100%);
+            border-radius: 20px;
+            padding: 28px 32px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .page-hero::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -60px;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .hero-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .hero-sub {
+            opacity: .75;
+            font-size: .9rem;
+        }
+
+        .section-label {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .surface-card {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1.5px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .card-head {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FAFAFA;
+        }
+
+        .card-head h5 {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            margin: 0;
+        }
+
+        .add-form-panel {
+            background: #F5F3FF;
+            border-bottom: 1.5px solid #EDE9FE;
+            padding: 20px 22px;
+        }
+
+        .table th {
+            font-size: .75rem;
+            color: var(--muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            background: #F8FAFC;
+            padding: 12px 16px;
+        }
+
+        .table td {
+            padding: 12px 16px;
+            font-size: .88rem;
+            vertical-align: middle;
+        }
+
+        .badge-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge-approved {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-rejected {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge-waiting {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        tr.selected-row {
+            background: #EDE9FE !important;
+        }
+
+        .trip-group-pill {
+            font-size: .73rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: #EDE9FE;
+            color: #5B21B6;
+        }
+
+        .merge-panel {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            border-top: 2px solid var(--vehicle);
+            padding: 14px 22px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            flex-wrap: wrap;
+        }
+
+        .merge-panel.show {
+            display: flex;
+        }
+
+        .merge-count {
+            font-weight: 700;
+            color: var(--vehicle);
+            font-size: .9rem;
+            white-space: nowrap;
+        }
+
+        .group-card {
+            background: #F5F3FF;
+            border: 1.5px solid #C4B5FD;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+        }
+
+        .group-title {
+            font-weight: 700;
+            color: #5B21B6;
+            font-size: .9rem;
+            margin-bottom: 8px;
+        }
+
+        .btn-vehicle {
+            background: var(--vehicle);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            padding: 8px 22px;
+            font-size: .88rem;
+        }
+
+        .btn-vehicle:hover {
+            opacity: .88;
+            color: #fff;
+        }
+
+        .fade-up {
+            animation: fadeUp .4s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-1 {
+            animation-delay: .05s;
+        }
+
+        .delay-2 {
+            animation-delay: .10s;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="container py-4" style="max-width:1400px;">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" style="border-radius:12px;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Hero -->
+        <div class="page-hero fade-up">
+            <div class="d-flex align-items-center justify-content-between position-relative" style="z-index:1;">
+                <div>
+                    <div class="hero-title">
+                        <i class="fa-solid fa-route me-2"></i> Admin อนุมัติการจองรถ
+                    </div>
+                    <div class="hero-sub">รวมรายการจอง · อนุมัติรถ · มอบหมายคนขับ</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('vehicle.index') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
+                        <i class="fa-solid fa-list me-1"></i> รายการจอง
+                    </a>
+                    <a href="{{ url_for('adminfleet.manage_fleet') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;">
+                        <i class="fa-solid fa-car me-1"></i> จัดการรถ
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== กลุ่มทริปที่มีอยู่แล้ว ===== -->
+        {% if groups %}
+        <div class="surface-card fade-up delay-1">
+            <div class="card-head">
+                <h5><i class="fa-solid fa-layer-group me-2" style="color:var(--vehicle);"></i>
+                    รายการอนุมัติที่รวมกัน ({{ groups|length }} กลุ่ม)
+                </h5>
+            </div>
+            <div class="p-3">
+                {% for group_name, group_bookings in groups.items() %}
+                <div class="group-card">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="group-title">
+                            <i class="fa-solid fa-people-group me-2"></i>{{ group_name }}
+                            {% set av = group_bookings[0].assigned_vehicle %}
+                            {% if av %}
+                            <span class="badge bg-secondary ms-2">{{ av.brand }} {{ av.model }} ({{ av.license_plate
+                                }})</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-muted" style="font-size:.8rem;">{{ group_bookings|length }} รายการ</span>
+                    </div>
+                    <div class="row g-2">
+                        {% for b in group_bookings %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="d-flex align-items-center justify-content-between p-2 bg-white rounded border">
+                                <div style="font-size:.83rem;">
+                                    <span class="fw-bold">#{{ b.id }}</span>
+                                    <span class="text-muted ms-1">{{ b.user.full_name or b.user.username }}</span><br>
+                                    <i class="fa-solid fa-location-dot text-danger fa-xs me-1"></i>{{ b.destination }}
+                                    <span class="text-muted ms-1">· {{ b.passenger_count }} คน</span>
+                                </div>
+                                <!-- ปุ่มเอาออกจากกลุ่ม -->
+                                <form action="{{ url_for('vehicle.admin_assign', booking_id=b.id) }}" method="POST"
+                                    class="ms-2">
+                                    <input type="hidden" name="action" value="ungroup">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="นำออกจากกลุ่ม"
+                                        onclick="return confirm('นำรายการนี้ออกจากกลุ่มไหม?')">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== ตารางรายการทั้งหมด ===== -->
+        <div class="surface-card fade-up delay-2" id="mainTableCard">
+            <div class="card-head">
+                <h5><i class="fa-solid fa-list-check me-2" style="color:var(--vehicle);"></i> รายการจองทั้งหมด</h5>
+                <div class="text-muted" style="font-size:.82rem;">
+                    <i class="fa-solid fa-square-check me-1"></i> เลือกหลายรายการแล้วกด "รวมรายการจอง" ด้านล่าง
+                </div>
+            </div>
+
+            <!-- ฟอร์มรวมทริป (submit จาก merge panel) -->
+            <form id="mergeForm" action="{{ url_for('vehicle.admin_merge') }}" method="POST">
+
+                <div class="table-responsive px-3 pt-3">
+                    <table id="adminTripTable" class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">
+                                    <input type="checkbox" class="form-check-input" id="checkAll">
+                                </th>
+                                <th>ID</th>
+                                <th>ผู้จอง / แผนก</th>
+                                <th>รถที่ขอ</th>
+                                <th>รถที่จะใช้จริง</th>
+                                <th>ปลายทาง</th>
+                                <th>วันเดินทาง</th>
+                                <th>ผู้โดยสาร</th>
+                                <th>กลุ่มทริป</th>
+                                <th>สถานะ</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr id="row-{{ b.id }}" {% if b.trip_group %}class="table-purple"
+                                style="background:#F5F3FF;" {% endif %}>
+                                <td data-order="{{ b.id }}">
+                                    {% if b.status != 'rejected' %}
+                                    <input type="checkbox" class="form-check-input row-check" name="booking_ids"
+                                        value="{{ b.id }}" data-id="{{ b.id }}">
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted fw-bold">#{{ b.id }}</td>
+                                <td>
+                                    <div class="fw-bold" style="font-size:.85rem;">{{ b.user.full_name or
+                                        b.user.username }}</div>
+                                    <small class="text-muted">{{ b.user.department or '-' }}</small>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">{{ b.assigned_vehicle.brand }} {{ b.assigned_vehicle.model }}
+                                    </div>
+                                    <small class="text-muted">{{ b.assigned_vehicle.license_plate }}</small>
+                                </td>
+                                <td>
+                                    {% if b.assigned_vehicle %}
+                                    <span class="badge" style="background:#D1FAE5;color:#065F46;font-size:.8rem;">
+                                        <i class="fa-solid fa-check me-1"></i>
+                                        {{ b.assigned_vehicle.brand }} {{ b.assigned_vehicle.model }}
+                                    </span><br>
+                                    <small class="text-muted">{{ b.assigned_vehicle.license_plate }}</small>
+                                    {% else %}
+                                    <span class="text-muted small">ยังไม่กำหนด</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <i class="fa-solid fa-location-dot text-danger fa-xs me-1"></i>
+                                    {{ b.destination }}
+                                </td>
+                                <td style="white-space:nowrap; font-size:.82rem;">
+                                    <i class="fa-regular fa-calendar me-1 text-muted"></i>
+                                    {{ b.start_datetime.strftime('%d/%m/%Y %H:%M') }}<br>
+                                    <span class="text-muted">ถึง {{ b.end_datetime.strftime('%d/%m/%Y %H:%M') }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <i class="fa-solid fa-users text-muted fa-xs me-1"></i>{{ b.passenger_count }}
+                                </td>
+                                <td>
+                                    {% if b.trip_group %}
+                                    <span class="trip-group-badge">
+                                        <i class="fa-solid fa-people-group fa-xs me-1"></i>{{ b.trip_group }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">รออนุมัติ</span>
+                                    {% elif b.status == 'approved' %}
+                                    <span class="badge bg-success">อนุมัติแล้ว</span>
+                                    {% elif b.status == 'waiting_approver' %}
+                                    <span class="badge bg-info text-dark">รอ Approver</span>
+                                    {% elif b.status == 'rejected' %}
+                                    <span class="badge bg-danger">ไม่อนุมัติ</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ b.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <!-- ปุ่มเปลี่ยนรถรายการเดี่ยว -->
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                                        data-bs-target="#assignModal" data-id="{{ b.id }}"
+                                        data-name="{{ b.user.full_name or b.user.username }}"
+                                        data-dept="{{ b.user.department or '' }}" data-dest="{{ b.destination }}"
+                                        data-passengers="{{ b.passenger_count }}"
+                                        data-vehicle="{{ b.assigned_vehicle_id or '' }}"
+                                        data-vehicle2="{{ b.assigned_vehicle2_id or '' }}"
+                                        data-group="{{ b.trip_group or '' }}"
+                                        data-need-driver="{{ 'true' if b.need_driver else 'false' }}"
+                                        data-driver="{{ b.driver_id or '' }}" data-driver2="{{ b.driver2_id or '' }}"
+                                        data-expense-type="{{ b.expense_type or '' }}"
+                                        data-central-category="{{ b.central_category or '' }}"
+                                        title="เปลี่ยนรถ / แก้กลุ่ม">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">ยังไม่มีรายการจอง</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Merge Panel (sticky bottom) -->
+                <div class="merge-panel" id="mergePanel">
+                    <span class="merge-count">
+                        <i class="fa-solid fa-square-check me-1"></i>
+                        เลือกแล้ว <span id="selectedCount">0</span> รายการ
+                    </span>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <input type="hidden" name="merge_action" id="mergeAction" value="approve">
+
+                        <label class="fw-bold text-dark"
+                            style="font-size:.85rem; white-space:nowrap;">รถที่จะใช้:</label>
+                        <select name="assigned_vehicle_id" class="form-select form-select-sm" style="width:220px;"
+                            required>
+                            <option value="">-- เลือกรถ --</option>
+                            {% for v in vehicles %}
+                            <option value="{{ v.id }}">{{ v.brand }} {{ v.model }} ({{ v.license_plate }}) · {{
+                                v.capacity }} ที่นั่ง</option>
+                            {% endfor %}
+                        </select>
+
+                        <label class="fw-bold text-dark" style="font-size:.85rem; white-space:nowrap;">คนขับ:</label>
+                        <select name="driver_id" id="mergeDriver" class="form-select form-select-sm"
+                            style="width:200px;">
+                            <option value="">-- ถ้ามีรายการขอคนขับ --</option>
+                            {% for d in drivers %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.phone }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-danger" id="mergeDriverHint" style="display:none; font-size:.75rem;">
+                            มีรายการขอคนขับ กรุณาเลือก
+                        </small>
+
+                        <label class="fw-bold text-dark"
+                            style="font-size:.85rem; white-space:nowrap;">ชื่อกลุ่ม:</label>
+                        <input type="text" name="trip_group" class="form-control form-control-sm" style="width:130px;"
+                            placeholder="TRP-001 (ปล่อยว่างให้ระบบสร้าง)">
+
+                        <div class="d-flex gap-2">
+                            <!-- อนุมัติทันที -->
+                            <button type="submit" class="btn btn-sm fw-bold px-3 btn-vehicle"
+                                onclick="document.getElementById('mergeAction').value='approve'">
+                                <i class="fa-solid fa-people-group me-1"></i> รวม + อนุมัติ
+                            </button>
+
+                            <!-- ส่งต่อ Approver -->
+                            <button type="submit" class="btn btn-sm fw-bold px-3"
+                                style="background:#2563EB;color:#fff;border-radius:10px;"
+                                onclick="document.getElementById('mergeAction').value='forward'">
+                                <i class="fa-solid fa-share-nodes me-1"></i> รวม + ส่ง Approver
+                            </button>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearBtn">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Modal: เปลี่ยนรถรายการเดี่ยว -->
+    <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow" style="border-radius:16px;">
+                <form id="assignForm" method="POST">
+                    <input type="hidden" name="action" value="assign">
+                    <input type="hidden" name="assign_action" id="assignAction" value="approve">
+                    <div class="modal-header border-0" style="background:#EDE9FE;border-radius:16px 16px 0 0;">
+                        <h5 class="modal-title fw-bold" style="color:#5B21B6;">
+                            <i class="fa-solid fa-pen-to-square me-2"></i> แก้ไขรายการ
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <p class="text-muted mb-2" id="assignInfo" style="font-size:.88rem;"></p>
+
+                        <!-- แสดง dept ของผู้จอง เพื่อให้ admin รู้ว่า approver แผนกไหนจะรับ -->
+                        <div id="assignDeptWrap" class="mb-3 p-2 rounded-3"
+                            style="background:#F0F9FF;border:1px solid #BAE6FD;display:none;">
+                            <small class="text-info fw-bold">
+                                <i class="fa-solid fa-circle-info me-1"></i>
+                                Approver ที่จะรับงาน: แผนก <span id="assignDeptLabel" class="text-dark"></span>
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">รถคันที่ 1</label>
+                            <select name="assigned_vehicle_id" id="assignVehicle" class="form-select">
+                                <option value="">-- เลือกรถ --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}" data-capacity="{{ v.capacity }}">
+                                    {{ v.brand }} {{ v.model }} ({{ v.license_plate }}) · {{ v.capacity }} ที่นั่ง
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- รถคัน 2 — โชว์อัตโนมัติเมื่อ passenger > capacity คัน 1 -->
+                        <div class="mb-3" id="assignVehicle2Wrap" style="display:none;">
+                            <div class="p-2 mb-2 rounded-3" style="background:#FEF9C3;border:1px solid #FCD34D;">
+                                <small class="fw-bold text-warning">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                    ผู้โดยสาร <span id="passengerOverCapacity"></span> เกินที่นั่งรถคัน 1 —
+                                    ต้องการรถเพิ่ม
+                                </small>
+                            </div>
+                            <label class="form-label small fw-bold">รถคันที่ 2 <span
+                                    class="text-danger">*</span></label>
+                            <select name="assigned_vehicle2_id" id="assignVehicle2" class="form-select border-warning">
+                                <option value="">-- เลือกรถคันที่ 2 --</option>
+                                {% for v in vehicles %}
+                                <option value="{{ v.id }}" data-capacity="{{ v.capacity }}">
+                                    {{ v.brand }} {{ v.model }} ({{ v.license_plate }}) · {{ v.capacity }} ที่นั่ง
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Driver — โชว์เฉพาะรายการที่ขอคนขับ -->
+                        <div class="mb-3" id="assignDriverWrap" style="display:none;">
+                            <label class="form-label small fw-bold">
+                                <i class="fa-solid fa-steering-wheel text-warning me-1"></i>
+                                คนขับคันที่ 1 <span class="text-danger">*</span>
+                            </label>
+                            <select name="driver_id" id="assignDriver" class="form-select border-warning">
+                                <option value="">-- กรุณาเลือกคนขับ --</option>
+                                {% for d in drivers %}
+                                <option value="{{ d.id }}">{{ d.name }} (โทร: {{ d.phone }})</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-warning mt-1 d-block">ผู้จองขอพนักงานขับรถมาด้วย</small>
+                        </div>
+
+                        <!-- Driver 2 — โชว์เมื่อมีรถคัน 2 -->
+                        <div class="mb-3" id="assignDriver2Wrap" style="display:none;">
+                            <label class="form-label small fw-bold">
+                                <i class="fa-solid fa-steering-wheel text-info me-1"></i>
+                                คนขับคันที่ 2 <span class="text-danger">*</span>
+                            </label>
+                            <select name="driver2_id" id="assignDriver2" class="form-select border-info">
+                                <option value="">-- กรุณาเลือกคนขับคันที่ 2 --</option>
+                                {% for d in drivers %}
+                                <option value="{{ d.id }}">{{ d.name }} (โทร: {{ d.phone }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">กลุ่มทริป <span
+                                    class="text-muted fw-normal">(ถ้ามี)</span></label>
+                            <input type="text" name="trip_group" id="assignGroup" class="form-control"
+                                placeholder="เช่น TRP-001 หรือปล่อยว่างถ้าไม่ใช่กลุ่ม">
+                        </div>
+
+                        <!-- ประเภทค่าใช้จ่าย -->
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold">
+                                <i class="fa-solid fa-wallet me-1 text-success"></i>
+                                ประเภทค่าใช้จ่าย <span class="text-danger">*</span>
+                            </label>
+                            <select name="expense_type" id="assignExpenseType" class="form-select" required>
+                                <option value="">-- กรุณาเลือก --</option>
+                                <option value="central">🏛 งานส่วนกลาง (ส่วนกลางออกค่าใช้จ่าย)</option>
+                                <option value="department">🏢 งานของหน่วยงาน (หน่วยงานออกค่าใช้จ่าย)</option>
+                                <option value="personal">👤 งานส่วนตัว (ผู้จองออกค่าใช้จ่ายเอง)</option>
+                            </select>
+                        </div>
+
+                        <!-- ประเภทงานส่วนกลาง — โชว์เฉพาะตอนเลือก central -->
+                        <div class="mb-2" id="assignCentralCatWrap" style="display:none;">
+                            <label class="form-label small fw-bold">ประเภทงานส่วนกลาง <span
+                                    class="text-danger">*</span></label>
+                            <select name="central_category" id="assignCentralCat" class="form-select border-success">
+                                <option value="">-- เลือกประเภทงาน --</option>
+                                <option value="งานครัว">งานครัว</option>
+                                <option value="ส่งคนป่วย">ส่งคนป่วย</option>
+                                <option value="งานจัดซื้อ">งานจัดซื้อ</option>
+                                <option value="งานธุรการ">งานธุรการ</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 gap-2">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+
+                        <!-- อนุมัติเองทันที -->
+                        <button type="submit" class="btn fw-bold px-3"
+                            style="background:#7C3AED;color:#fff;border-radius:10px;"
+                            onclick="document.getElementById('assignAction').value='approve'">
+                            <i class="fa-solid fa-save me-1"></i> บันทึก + อนุมัติ
+                        </button>
+
+                        <!-- ส่งต่อ Approver -->
+                        <button type="submit" class="btn fw-bold px-3"
+                            style="background:#2563EB;color:#fff;border-radius:10px;"
+                            onclick="document.getElementById('assignAction').value='forward'">
+                            <i class="fa-solid fa-share-nodes me-1"></i> ส่ง Approver
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+    <script>
+        $(document).ready(function () {
+
+            // DataTable
+            $('#adminTripTable').DataTable({
+                responsive: true,
+                language: {
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    zeroRecords: "ไม่พบข้อมูล",
+                    info: "แสดง _START_-_END_ จาก _TOTAL_ รายการ",
+                    infoEmpty: "ไม่มีข้อมูล",
+                    infoFiltered: "(กรองจาก _MAX_ รายการ)",
+                    search: "ค้นหา:",
+                    paginate: { first: "หน้าแรก", last: "หน้าสุดท้าย", next: "ถัดไป", previous: "ก่อนหน้า" }
+                },
+                columnDefs: [
+                    { type: 'num', targets: 0 }  // column index 0 = คอลัมน์แรก
+                ],
+                order: [[0,'desc']],
+                pageLength: 25
+            });
+
+            // Check All
+            $('#checkAll').on('change', function () {
+                $('.row-check').prop('checked', this.checked);
+                updateMergePanel();
+            });
+
+            // Individual checkbox
+            $(document).on('change', '.row-check', function () {
+                updateMergePanel();
+                checkNeedDriverInSelection();
+                const allChecked = $('.row-check').length === $('.row-check:checked').length;
+                $('#checkAll').prop('checked', allChecked);
+            });
+
+            function updateMergePanel() {
+                const count = $('.row-check:checked').length;
+                $('#selectedCount').text(count);
+
+                // highlight rows
+                $('.row-check').each(function () {
+                    const row = $(this).closest('tr');
+                    if (this.checked) {
+                        row.addClass('selected-row');
+                    } else {
+                        row.removeClass('selected-row');
+                    }
+                });
+
+                if (count >= 2) {
+                    $('#mergePanel').addClass('show');
+                } else {
+                    $('#mergePanel').removeClass('show');
+                }
+            }
+
+            // Clear
+            $('#clearBtn').on('click', function () {
+                $('.row-check, #checkAll').prop('checked', false);
+                updateMergePanel();
+            });
+
+            // Assign Modal
+            document.getElementById('assignModal').addEventListener('show.bs.modal', function (e) {
+                const btn = e.relatedTarget;
+                document.getElementById('assignForm').action = '/vehicle/admin/assign/' + btn.dataset.id;
+                document.getElementById('assignInfo').textContent =
+                    '#' + btn.dataset.id + ' — ' + btn.dataset.name + ' · ปลายทาง: ' + btn.dataset.dest +
+                    ' · ผู้โดยสาร: ' + btn.dataset.passengers + ' คน';
+                document.getElementById('assignVehicle').value = btn.dataset.vehicle || '';
+                document.getElementById('assignVehicle2').value = btn.dataset.vehicle2 || '';
+                document.getElementById('assignGroup').value = btn.dataset.group || '';
+                document.getElementById('assignDriver2').value = btn.dataset.driver2 || '';
+
+                // เก็บ passenger count ไว้ใน modal
+                document.getElementById('assignVehicle').dataset.passengers = btn.dataset.passengers;
+
+                // เช็ค vehicle2 ทันทีที่เปิด modal
+                checkVehicle2Need();
+
+                // dept info
+                const dept = btn.dataset.dept || '';
+                const deptWrap = document.getElementById('assignDeptWrap');
+                if (dept) {
+                    document.getElementById('assignDeptLabel').textContent = dept;
+                    deptWrap.style.display = 'block';
+                } else {
+                    deptWrap.style.display = 'none';
+                }
+
+                // driver field
+                const needDriver = btn.dataset.needDriver === 'true';
+                const driverWrap = document.getElementById('assignDriverWrap');
+                const driverSel = document.getElementById('assignDriver');
+                driverWrap.style.display = needDriver ? 'block' : 'none';
+                driverSel.required = needDriver;
+                driverSel.value = btn.dataset.driver || '';
+
+                document.getElementById('assignAction').value = 'approve';
+
+                // โหลดค่า expense_type เดิม
+                const expType = btn.dataset.expenseType || '';
+                document.getElementById('assignExpenseType').value = expType;
+                document.getElementById('assignCentralCat').value = btn.dataset.centralCategory || '';
+                toggleCentralCat(expType);
+            });
+
+            function toggleCentralCat(val) {
+                const wrap = document.getElementById('assignCentralCatWrap');
+                const sel = document.getElementById('assignCentralCat');
+                if (val === 'central') {
+                    wrap.style.display = 'block';
+                    sel.required = true;
+                } else {
+                    wrap.style.display = 'none';
+                    sel.required = false;
+                }
+            }
+            document.getElementById('assignExpenseType').addEventListener('change', function () {
+                toggleCentralCat(this.value);
+            });
+
+            // เช็คว่าต้องโชว์รถคัน 2 ไหม
+            function checkVehicle2Need() {
+                const sel = document.getElementById('assignVehicle');
+                const passengers = parseInt(sel.dataset.passengers || '0');
+                const selected = sel.options[sel.selectedIndex];
+                const capacity = selected ? parseInt(selected.dataset.capacity || '999') : 999;
+                const wrap = document.getElementById('assignVehicle2Wrap');
+                const v2sel = document.getElementById('assignVehicle2');
+                const d2wrap = document.getElementById('assignDriver2Wrap');
+                const d2sel = document.getElementById('assignDriver2');
+                const needDriver = document.getElementById('assignDriverWrap').style.display !== 'none';
+
+                if (passengers > capacity && sel.value) {
+                    document.getElementById('passengerOverCapacity').textContent =
+                        passengers + ' คน / รถคัน 1 รับได้ ' + capacity + ' คน';
+                    wrap.style.display = 'block';
+                    v2sel.required = true;
+
+                    // โชว์คนขับคัน 2 ถ้ารายการขอคนขับ
+                    if (needDriver) {
+                        d2wrap.style.display = 'block';
+                        d2sel.required = true;
+                    }
+                } else {
+                    wrap.style.display = 'none';
+                    v2sel.required = false;
+                    d2wrap.style.display = 'none';
+                    d2sel.required = false;
+                }
+            }
+
+            // ฟังการเปลี่ยนรถคัน 1
+            document.getElementById('assignVehicle').addEventListener('change', checkVehicle2Need);
+
+            // Merge Panel — เช็ควว่ามีรายการขอคนขับถูกเลือกไหม
+            function checkNeedDriverInSelection() {
+                let hasNeedDriver = false;
+                $('.row-check:checked').each(function () {
+                    const row = $(this).closest('tr');
+                    const btn = row.find('[data-need-driver]');
+                    if (btn.data('need-driver') === 'true' || btn.attr('data-need-driver') === 'true') {
+                        hasNeedDriver = true;
+                    }
+                });
+                const hint = document.getElementById('mergeDriverHint');
+                const driverSel = document.getElementById('mergeDriver');
+                if (hasNeedDriver) {
+                    hint.style.display = 'inline';
+                    driverSel.style.borderColor = '#EF4444';
+                } else {
+                    hint.style.display = 'none';
+                    driverSel.style.borderColor = '';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

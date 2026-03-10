@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แก้ไขการจองรถ</title>
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+</head>
+<body class="bg-light">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-4 mb-5" style="max-width: 800px;">
+    
+    <div class="card shadow-sm border-0 border-top border-warning border-4" style="border-radius: 15px;">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold text-warning-emphasis"><i class="fa-solid fa-pen-to-square me-2 text-warning"></i> แก้ไขรายละเอียดการจอง</h5>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            
+            <form action="/vehicle/edit/{{ booking.id }}" method="POST">
+                
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-route me-1"></i> 1. ข้อมูลการเดินทาง</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-muted small fw-bold">วัน-เวลา ไป</label>
+                        <input type="text" class="form-control datetimepicker" name="start_datetime" value="{{ start_str }}" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-muted small fw-bold">วัน-เวลา กลับ</label>
+                        <input type="text" class="form-control datetimepicker" name="end_datetime" value="{{ end_str }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted small fw-bold">สถานที่ปลายทาง</label>
+                        <input type="text" class="form-control" name="destination" value="{{ booking.destination }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted small fw-bold">วัตถุประสงค์การเดินทาง</label>
+                        <input type="text" class="form-control" name="purpose" value="{{ booking.purpose }}" required>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-users-gear me-1"></i> 2. ผู้โดยสาร & บริการ</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-muted small fw-bold">จำนวนผู้เดินทาง (รวมตัวเอง)</label>
+                        <input type="number" class="form-control" name="passenger_count" min="1" max="{{ booking.assigned_vehicle.capacity if booking.assigned_vehicle else 10 }}" value="{{ booking.passenger_count }}" required>
+                    </div>
+                    <div class="col-12 col-md-8 d-flex align-items-center mt-2 mt-md-4 pt-md-2">
+                        <div class="form-check form-switch fs-5 mb-0">
+                            <input class="form-check-input" type="checkbox" name="need_driver" id="needDriver" {% if booking.need_driver %}checked{% endif %}>
+                            <label class="form-check-label fs-6 fw-bold" for="needDriver">ต้องการพนักงานขับรถ 🧑‍✈️</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success border-success shadow-sm mb-4">
+                    <div class="form-check form-switch fs-5">
+                        <input class="form-check-input" type="checkbox" name="allow_join" id="allowJoin" {% if booking.allow_join %}checked{% endif %}>
+                        <label class="form-check-label fs-6 fw-bold text-success" for="allowJoin">
+                            <i class="fa-solid fa-handshake-angle me-1"></i> อนุญาตให้แผนกอื่นร่วมเดินทาง (แชร์รถ)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-between mt-4">
+                    <a href="javascript:history.back()" class="btn btn-secondary px-md-4 order-2 order-md-1"><i class="fa-solid fa-arrow-left me-1"></i> ยกเลิกการแก้ไข</a>
+                    <button type="submit" class="btn btn-warning px-md-4 fw-bold order-1 order-md-2 text-dark"><i class="fa-solid fa-save me-1"></i> บันทึกการเปลี่ยนแปลง</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 🌟 เรียกใช้งาน Flatpickr กับ input ที่มีคลาส .datetimepicker
+        flatpickr(".datetimepicker", {
+            enableTime: true,        // เปิดให้เลือกเวลาได้
+            time_24hr: true,         // ใช้เวลาแบบ 24 ชั่วโมง (00:00 - 23:59)
+            minuteIncrement: 5,      // 🌟 พระเอกของเรา! บังคับให้ขยับทีละ 5 นาที
+            locale: "th",            // ใช้ภาษาไทย
+            dateFormat: "Y-m-d\\TH:i", // ฟอร์แมตนี้เพื่อให้ส่งค่าไปหา Python (Flask) ได้เหมือนเดิมเป๊ะ ไม่ Error แน่นอน
+            minDate: "today"         // (ออปชันเสริม) ป้องกันไม่ให้จองรถย้อนหลังอดีตได้
+        });
+    });
+</script>
+</body>
+</html>

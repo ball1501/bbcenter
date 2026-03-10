@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการรถและคนขับ - BBCenter</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    <style>
+        body { background: #F0F2F5; }
+        .page-header {
+            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
+            border-radius: 16px;
+            padding: 24px 28px;
+            color: #fff;
+            margin-bottom: 24px;
+        }
+        .section-card {
+            background: #fff;
+            border-radius: 16px;
+            border: 1.5px solid #E4E7ED;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .section-card .card-head {
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #E4E7ED;
+        }
+        .section-card .card-head h5 {
+            font-weight: 700;
+            font-size: .95rem;
+            margin: 0;
+        }
+        .add-form-card {
+            background: #F8FAFC;
+            border-radius: 12px;
+            border: 1.5px dashed #CBD5E1;
+            padding: 20px;
+            margin: 16px;
+            margin-bottom: 0;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+
+<div class="container-fluid px-4 py-4" style="max-width:1200px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" style="border-radius:12px;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Header -->
+    <div class="page-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gears me-2"></i> จัดการรถและคนขับ</h4>
+                <div style="opacity:.75; font-size:.88rem;">
+                    รถทั้งหมด {{ vehicles|length }} คัน &nbsp;·&nbsp; คนขับทั้งหมด {{ drivers|length }} คน
+                </div>
+            </div>
+            <a href="{{ url_for('vehicle.index') }}" class="btn btn-sm fw-bold"
+               style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;">
+                <i class="fa-solid fa-arrow-left me-1"></i> กลับหน้าจองรถ
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== VEHICLES ===== -->
+    <div class="section-card">
+        <div class="card-head">
+            <h5><i class="fa-solid fa-car me-2 text-primary"></i> รายการรถทั้งหมด</h5>
+            <button class="btn btn-primary btn-sm fw-bold px-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#addVehicleForm">
+                <i class="fa-solid fa-plus me-1"></i> เพิ่มรถใหม่
+            </button>
+        </div>
+
+        <!-- Add Vehicle Form (collapsible) -->
+        <div class="collapse" id="addVehicleForm">
+            <div class="add-form-card">
+                <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-plus-circle me-1"></i> เพิ่มรถคันใหม่</h6>
+                <form action="/admin/manage-fleet" method="POST">
+                    <input type="hidden" name="action" value="add_vehicle">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">ยี่ห้อ</label>
+                            <input type="text" class="form-control" name="brand" placeholder="Toyota" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">รุ่น</label>
+                            <input type="text" class="form-control" name="model" placeholder="Commuter" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">ทะเบียน</label>
+                            <input type="text" class="form-control" name="license_plate" placeholder="1กข 1234 กทม" required>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small fw-bold">ที่นั่ง</label>
+                            <input type="number" class="form-control" name="capacity" min="1" value="8" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100 fw-bold">
+                                <i class="fa-solid fa-save me-1"></i> บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Vehicles Table -->
+        <div class="table-responsive p-3">
+            <table id="vehicleTable" class="table table-hover align-middle mb-0">
+                <thead style="background:#F8FAFC;">
+                    <tr>
+                        <th class="ps-3" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ID</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ยี่ห้อ/รุ่น</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ทะเบียน</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ที่นั่ง</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">สถานะ</th>
+                        <th class="text-center" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vehicles %}
+                    <tr>
+                        <td class="ps-3 text-muted">#{{ v.id }}</td>
+                        <td>
+                            <div class="fw-bold">{{ v.brand }}</div>
+                            <small class="text-muted">{{ v.model }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ v.license_plate }}</span>
+                        </td>
+                        <td>
+                            <i class="fa-solid fa-users text-muted me-1"></i>{{ v.capacity }} คน
+                        </td>
+                        <td>
+                            {% if v.status == 'active' %}
+                                <span class="badge" style="background:#D1FAE5;color:#065F46;">
+                                    <span class="status-dot" style="background:#10B981;"></span>พร้อมใช้งาน
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background:#FEE2E2;color:#991B1B;">
+                                    <span class="status-dot" style="background:#EF4444;"></span>ไม่พร้อม
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning me-1"
+                                    data-bs-toggle="modal" data-bs-target="#editVehicleModal"
+                                    data-id="{{ v.id }}"
+                                    data-brand="{{ v.brand }}"
+                                    data-model="{{ v.model }}"
+                                    data-plate="{{ v.license_plate }}"
+                                    data-capacity="{{ v.capacity }}"
+                                    data-status="{{ v.status }}">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteVehicleModal"
+                                    data-id="{{ v.id }}"
+                                    data-name="{{ v.brand }} {{ v.model }} ({{ v.license_plate }})">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== DRIVERS ===== -->
+    <div class="section-card">
+        <div class="card-head">
+            <h5><i class="fa-solid fa-id-badge me-2 text-success"></i> รายการพนักงานขับรถ</h5>
+            <button class="btn btn-success btn-sm fw-bold px-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#addDriverForm">
+                <i class="fa-solid fa-plus me-1"></i> เพิ่มคนขับใหม่
+            </button>
+        </div>
+
+        <!-- Add Driver Form (collapsible) -->
+        <div class="collapse" id="addDriverForm">
+            <div class="add-form-card">
+                <h6 class="fw-bold text-success mb-3"><i class="fa-solid fa-plus-circle me-1"></i> เพิ่มพนักงานขับรถ</h6>
+                <form action="/admin/manage-fleet" method="POST">
+                    <input type="hidden" name="action" value="add_driver">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold">ชื่อ-นามสกุล</label>
+                            <input type="text" class="form-control" name="name" placeholder="สมชาย ใจดี" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">เบอร์โทร</label>
+                            <input type="text" class="form-control" name="phone" placeholder="081-234-5678" required>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100 fw-bold">
+                                <i class="fa-solid fa-save me-1"></i> บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Drivers Table -->
+        <div class="table-responsive p-3">
+            <table id="driverTable" class="table table-hover align-middle mb-0">
+                <thead style="background:#F8FAFC;">
+                    <tr>
+                        <th class="ps-3" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ID</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ชื่อ</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">เบอร์โทร</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">สถานะ</th>
+                        <th class="text-center" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in drivers %}
+                    <tr>
+                        <td class="ps-3 text-muted">#{{ d.id }}</td>
+                        <td class="fw-bold">{{ d.name }}</td>
+                        <td>
+                            <i class="fa-solid fa-phone text-muted me-1"></i>{{ d.phone }}
+                        </td>
+                        <td>
+                            {% if d.is_active %}
+                                <span class="badge" style="background:#D1FAE5;color:#065F46;">
+                                    <span class="status-dot" style="background:#10B981;"></span>พร้อมทำงาน
+                                </span>
+                            {% else %}
+                                <span class="badge" style="background:#F3F4F6;color:#6B7280;">
+                                    <span class="status-dot" style="background:#9CA3AF;"></span>ไม่ได้ทำงาน
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning me-1"
+                                    data-bs-toggle="modal" data-bs-target="#editDriverModal"
+                                    data-id="{{ d.id }}"
+                                    data-name="{{ d.name }}"
+                                    data-phone="{{ d.phone }}"
+                                    data-active="{{ 'true' if d.is_active else 'false' }}">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#deleteDriverModal"
+                                    data-id="{{ d.id }}"
+                                    data-name="{{ d.name }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Edit Vehicle -->
+<div class="modal fade" id="editVehicleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form id="editVehicleForm" action="/admin/manage-fleet" method="POST">
+                <input type="hidden" name="action" value="edit_vehicle">
+                <input type="hidden" name="vehicle_id" id="ev_id">
+                <div class="modal-header border-0" style="background:#FEF3C7;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="fa-solid fa-pen me-2 text-warning"></i> แก้ไขข้อมูลรถ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">ยี่ห้อ</label>
+                            <input type="text" class="form-control" name="brand" id="ev_brand" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">รุ่น</label>
+                            <input type="text" class="form-control" name="model" id="ev_model" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">ทะเบียน</label>
+                            <input type="text" class="form-control" name="license_plate" id="ev_plate" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">ที่นั่ง</label>
+                            <input type="number" class="form-control" name="capacity" id="ev_capacity" min="1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold">สถานะ</label>
+                            <select class="form-select" name="status" id="ev_status">
+                                <option value="active">พร้อมใช้งาน</option>
+                                <option value="inactive">ไม่พร้อม</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Vehicle -->
+<div class="modal fade" id="deleteVehicleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form id="deleteVehicleForm" action="/admin/manage-fleet" method="POST">
+                <input type="hidden" name="action" value="delete_vehicle">
+                <input type="hidden" name="vehicle_id" id="dv_id">
+                <div class="modal-header border-0" style="background:#FEE2E2;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#991B1B;">
+                        <i class="fa-solid fa-trash me-2"></i> ลบรถ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="mb-1">ต้องการลบรถ</p>
+                    <p class="fw-bold" id="dv_name"></p>
+                    <p class="text-muted small">ออกจากระบบหรือไม่? ข้อมูลจะถูกลบถาวร</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4">ลบเลย</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Driver -->
+<div class="modal fade" id="editDriverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form action="/admin/manage-fleet" method="POST">
+                <input type="hidden" name="action" value="edit_driver">
+                <input type="hidden" name="driver_id" id="ed_id">
+                <div class="modal-header border-0" style="background:#FEF3C7;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="fa-solid fa-pen me-2 text-warning"></i> แก้ไขข้อมูลคนขับ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-bold">ชื่อ-นามสกุล</label>
+                            <input type="text" class="form-control" name="name" id="ed_name" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold">เบอร์โทร</label>
+                            <input type="text" class="form-control" name="phone" id="ed_phone" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="ed_active" style="width:2.5em;height:1.4em;">
+                                <label class="form-check-label fw-bold ms-2" for="ed_active">พร้อมทำงาน (Active)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Driver -->
+<div class="modal fade" id="deleteDriverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form action="/admin/manage-fleet" method="POST">
+                <input type="hidden" name="action" value="delete_driver">
+                <input type="hidden" name="driver_id" id="dd_id">
+                <div class="modal-header border-0" style="background:#FEE2E2;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#991B1B;">
+                        <i class="fa-solid fa-trash me-2"></i> ลบคนขับ
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p class="mb-1">ต้องการลบพนักงานขับรถ</p>
+                    <p class="fw-bold" id="dd_name"></p>
+                    <p class="text-muted small">ออกจากระบบหรือไม่?</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-danger fw-bold px-4">ลบเลย</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+<script>
+$(document).ready(function() {
+    const dtLang = {
+        lengthMenu: "แสดง _MENU_ รายการ",
+        zeroRecords: "ไม่พบข้อมูล",
+        info: "แสดง _START_-_END_ จาก _TOTAL_ รายการ",
+        infoEmpty: "ไม่มีข้อมูล",
+        infoFiltered: "(กรองจาก _MAX_ รายการ)",
+        search: "ค้นหา:",
+        paginate: { first:"หน้าแรก", last:"หน้าสุดท้าย", next:"ถัดไป", previous:"ก่อนหน้า" }
+    };
+    $('#vehicleTable').DataTable({ responsive: true, language: dtLang, emptyTable: "ยังไม่มีข้อมูลในตาราง", order: [[0, 'asc']] });
+    $('#driverTable').DataTable({ responsive: true, language: dtLang, emptyTable: "ยังไม่มีข้อมูลในตาราง", order: [[0, 'asc']] });
+
+    // Edit Vehicle Modal
+    document.getElementById('editVehicleModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('ev_id').value       = btn.dataset.id;
+        document.getElementById('ev_brand').value    = btn.dataset.brand;
+        document.getElementById('ev_model').value    = btn.dataset.model;
+        document.getElementById('ev_plate').value    = btn.dataset.plate;
+        document.getElementById('ev_capacity').value = btn.dataset.capacity;
+        document.getElementById('ev_status').value   = btn.dataset.status;
+    });
+
+    // Delete Vehicle Modal
+    document.getElementById('deleteVehicleModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('dv_id').value   = btn.dataset.id;
+        document.getElementById('dv_name').textContent = btn.dataset.name;
+    });
+
+    // Edit Driver Modal
+    document.getElementById('editDriverModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('ed_id').value    = btn.dataset.id;
+        document.getElementById('ed_name').value  = btn.dataset.name;
+        document.getElementById('ed_phone').value = btn.dataset.phone;
+        document.getElementById('ed_active').checked = (btn.dataset.active === 'true');
+    });
+
+    // Delete Driver Modal
+    document.getElementById('deleteDriverModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('dd_id').value = btn.dataset.id;
+        document.getElementById('dd_name').textContent = btn.dataset.name;
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ปฏิทินการจองรถ - BB-Center</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.11/index.global.min.js'></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <style>
+        /* ปรับแต่งกรอบปฏิทิน */
+        #calendar-wrapper {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .fc-event { cursor: pointer; border-radius: 4px; border: none; padding: 2px 4px; }
+        .fc-event:hover { opacity: 0.9; }
+
+        /* 🌟 CSS สำหรับจัดระเบียบปุ่มบนมือถือ */
+        @media (max-width: 768px) {
+            #calendar-wrapper { padding: 10px; }
+            
+            /* สั่งให้แถบเครื่องมือด้านบนเรียงเป็นแนวตั้งบนมือถือ */
+            .fc .fc-toolbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            /* ย่อขนาดตัวอักษรของเดือน/ปี */
+            .fc .fc-toolbar-title {
+                font-size: 1.2rem !important;
+                text-align: center;
+            }
+            
+            /* ย่อขนาดปุ่มให้กดง่ายขึ้นแต่ไม่ล้นจอ */
+            .fc .fc-button {
+                padding: 0.3rem 0.6rem !important;
+                font-size: 0.85rem !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+{% include 'navbar.html' %}
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0"><i class="fa-regular fa-calendar-check me-2 text-primary"></i> ปฏิทินการเดินรถ</h4>
+        <a href="{{ url_for('vehicle.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-list me-1"></i> กลับไปหน้ารายการ
+        </a>
+    </div>
+
+    <div class="mb-3 text-center small">
+        <span class="badge bg-success mx-1 px-2 py-1">อนุมัติแล้ว</span>
+        <span class="badge bg-info text-dark mx-1 px-2 py-1">รอ Approver</span>
+        <span class="badge bg-warning text-dark mx-1 px-2 py-1">รอแอดมิน</span>
+    </div>
+
+    <div id="calendar-wrapper">
+        <div id='calendar'></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        
+        // 🌟 เช็คว่าจอเล็กกว่า 768px (มือถือ) หรือไม่
+        var isMobile = window.innerWidth <= 768;
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            themeSystem: 'bootstrap5',
+            // ถ้าเป็นมือถือ ให้เริ่มต้นด้วยหน้า 'กำหนดการ (List)' ถ้าเป็นคอมให้ใช้ 'รายเดือน'
+            initialView: isMobile ? 'listWeek' : 'dayGridMonth', 
+            locale: 'th',
+            
+            // ปรับปุ่มด้านขวา: ถ้าเป็นมือถือซ่อนปุ่ม 'สัปดาห์' ไปเลยเพื่อประหยัดพื้นที่
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: isMobile ? 'dayGridMonth,listWeek' : 'dayGridMonth,timeGridWeek,listWeek'
+            },
+            buttonText: {
+                today: 'วันนี้',
+                month: 'เดือน',
+                week: 'สัปดาห์',
+                list: 'กำหนดการ'
+            },
+            events: '/api/vehicle/bookings', 
+            
+            eventClick: function(info) {
+                info.jsEvent.preventDefault(); 
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                }
+            },
+            
+            // 🌟 ให้ปรับขนาดปฏิทินอัตโนมัติเมื่อหมุนหน้าจอ หรือย่อขยายเบราว์เซอร์
+            windowResize: function(arg) {
+                var isNowMobile = window.innerWidth <= 768;
+                if (isNowMobile) {
+                    calendar.changeView('listWeek');
+                } else {
+                    calendar.changeView('dayGridMonth');
+                }
+            }
+        });
+        
+        calendar.render();
+    });
+</script>
+</body>
+</html>

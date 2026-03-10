@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแจ้งซ่อมออนไลน์ (IT Support)</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    
+    <style>
+        body { background-color: #f4f6f9; }
+        .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card-header { border-top-left-radius: 15px !important; border-top-right-radius: 15px !important; }
+        .form-control, .form-select { border-radius: 10px; }
+        .btn { border-radius: 10px; }
+        /* บันทึกการซ่อม: truncate ถ้ายาว */
+        .resolved-note-cell {
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+{% include 'navbar.html' %}
+
+<div class="container-fluid px-4 pb-5">
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 10px;">
+                    {% if category == 'success' %}
+                        <i class="fa-solid fa-circle-check me-2"></i>
+                    {% elif category == 'danger' %}
+                        <i class="fa-solid fa-circle-xmark me-2"></i>
+                    {% elif category == 'warning' %}
+                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Summary Cards — เห็นเฉพาะ Admin -->
+    {% if (current_user.role_repair == 'admin' or current_user.is_superadmin) and summary %}
+    <div class="row g-3 mb-4">
+
+        <div class="col-12 d-flex align-items-center justify-content-between">
+            <h6 class="text-muted fw-bold mb-0">
+                <i class="fa-solid fa-chart-bar me-2 text-primary"></i>
+                สรุปประจำเดือน — {{ summary.month_label }}
+            </h6>
+        </div>
+
+        <div class="col-6 col-md-3 col-xl">
+            <div class="card shadow-sm text-center py-3 px-2 bg-white" style="border-radius:12px;">
+                <div class="text-muted small mb-1">รายการทั้งหมด</div>
+                <div class="fw-bold fs-3 text-dark">{{ summary.total }}</div>
+                <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3 col-xl">
+            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#F3F4F6;">
+                <div class="text-muted small mb-1">รอดำเนินการ</div>
+                <div class="fw-bold fs-3 text-secondary">{{ summary.pending }}</div>
+                <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3 col-xl">
+            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#E0F2FE;">
+                <div class="text-muted small mb-1">กำลังดำเนินการ</div>
+                <div class="fw-bold fs-3 text-info">{{ summary.in_progress }}</div>
+                <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3 col-xl">
+            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#D1FAE5;">
+                <div class="text-muted small mb-1">เสร็จสิ้น</div>
+                <div class="fw-bold fs-3 text-success">{{ summary.done }}</div>
+                <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3 col-xl">
+            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#FEE2E2;">
+                <div class="text-muted small mb-1">ด่วนมาก 🔴</div>
+                <div class="fw-bold fs-3 text-danger">{{ summary.urgent }}</div>
+                <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+            </div>
+        </div>
+
+        <!-- By Category -->
+        {% if summary.by_category %}
+        <div class="col-12">
+            <div class="card shadow-sm px-3 py-2" style="border-radius:12px;">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="text-muted small fw-bold me-2">แยกตามประเภท:</span>
+                    {% for cat, count in summary.by_category.items() %}
+                    <span class="badge bg-primary">{{ cat }}: {{ count }} งาน</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    <div class="row">
+        
+        <!-- ฟอร์มแจ้งซ่อม / แก้ไข -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header {% if edit_ticket %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} py-3">
+                    <h5 class="mb-0 fw-bold">
+                        {% if edit_ticket %}
+                            <i class="fa-solid fa-pen-to-square me-2"></i> แก้ไขแจ้งซ่อม #{{ edit_ticket.id }}
+                        {% else %}
+                            <i class="fa-solid fa-wrench me-2"></i> ฟอร์มแจ้งซ่อมไอที
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form action="{% if edit_ticket %}/repair/edit/{{ edit_ticket.id }}{% else %}/repair{% endif %}" method="POST" enctype="multipart/form-data">
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold"><i class="fa-solid fa-user me-1"></i> ผู้แจ้งซ่อม</label>
+                            <input type="text" class="form-control bg-light" value="{{ current_user.full_name or current_user.username }}" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">ประเภทปัญหา <span class="text-danger">*</span></label>
+                            <select class="form-select" name="category" required>
+                                <option value="" {% if not edit_ticket %}selected{% endif %} disabled>-- เลือกประเภท --</option>
+                                <option value="PC/Laptop" {% if edit_ticket and edit_ticket.category == 'PC/Laptop' %}selected{% endif %}>คอมพิวเตอร์ / โน้ตบุ๊ก</option>
+                                <option value="Printer" {% if edit_ticket and edit_ticket.category == 'Printer' %}selected{% endif %}>เครื่องปริ้นเตอร์</option>
+                                <option value="Network" {% if edit_ticket and edit_ticket.category == 'Network' %}selected{% endif %}>ระบบเครือข่าย (Network)</option>
+                                <option value="Software" {% if edit_ticket and edit_ticket.category == 'Software' %}selected{% endif %}>โปรแกรม / ซอฟต์แวร์</option>
+                                <option value="Other" {% if edit_ticket and edit_ticket.category == 'Other' %}selected{% endif %}>อื่นๆ</option>
+                            </select>
+                        </div>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">รหัสทรัพย์สิน</label>
+                                <input type="text" class="form-control" name="asset_tag" placeholder="PC-IT-01" value="{{ edit_ticket.asset_tag if edit_ticket and edit_ticket.asset_tag else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted small fw-bold">สถานที่ / ห้อง <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="location" placeholder="เช่น แผนกบัญชี" value="{{ edit_ticket.location if edit_ticket else '' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">ความเร่งด่วน <span class="text-danger">*</span></label>
+                            <select class="form-select" name="urgency" required>
+                                <option value="ปกติ" {% if not edit_ticket or edit_ticket.urgency == 'ปกติ' %}selected{% endif %}>🟢 ปกติ (1-2 วัน)</option>
+                                <option value="ด่วน" {% if edit_ticket and edit_ticket.urgency == 'ด่วน' %}selected{% endif %}>🟡 ด่วน (กระทบงาน)</option>
+                                <option value="ด่วนมาก" {% if edit_ticket and edit_ticket.urgency == 'ด่วนมาก' %}selected{% endif %}>🔴 ด่วนมาก (ระบบล่ม)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">หัวข้อปัญหา <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="subject" placeholder="สรุปอาการสั้นๆ" value="{{ edit_ticket.subject if edit_ticket else '' }}" required>
+                        </div>
+
+                        {% if not edit_ticket %}
+                        <div class="mb-4">
+                            <label class="form-label text-muted small fw-bold"><i class="fa-solid fa-image me-1"></i> แนบรูปภาพประกอบ (ถ้ามี)</label>
+                            <input class="form-control" type="file" name="image" accept="image/*">
+                        </div>
+                        {% endif %}
+
+                        {% if edit_ticket %}
+                            <button type="submit" class="btn btn-warning w-100 fw-bold py-2 mb-2"><i class="fa-solid fa-save me-1"></i> บันทึกการแก้ไข</button>
+                            <a href="/repair" class="btn btn-secondary w-100 fw-bold py-2"><i class="fa-solid fa-xmark me-1"></i> ยกเลิก</a>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2"><i class="fa-solid fa-paper-plane me-1"></i> ส่งแจ้งซ่อม</button>
+                        {% endif %}
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ตารางรายการแจ้งซ่อม -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i> รายการแจ้งซ่อมทั้งหมด</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="repairTable" class="table table-hover table-striped align-middle w-100">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>วันที่แจ้ง</th>
+                                    <th>ผู้แจ้ง</th>
+                                    <th>หัวข้อปัญหา</th>
+                                    <th>สถานที่</th>
+                                    <th>ความเร่งด่วน</th>
+                                    <th>สถานะ</th>
+                                    <th>บันทึกการซ่อม</th>
+                                    <th>จัดการ</th>
+                                    {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+                                    <th>for Admin</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets %}
+                                <tr>
+                                    <td data-order="{{ ticket.id }}">#{{ ticket.id }}</td>
+                                    <td>{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ ticket.user.full_name or ticket.user.username }}</td>
+                                    <td>
+                                        <span class="fw-bold">{{ ticket.subject }}</span><br>
+                                        <small class="text-muted">{{ ticket.category }}</small>
+                                        {% if ticket.image_file %}
+                                        <div class="mt-1">
+                                            <a href="{{ url_for('static', filename='uploads/repair/' + ticket.image_file) }}" target="_blank" class="badge bg-secondary text-decoration-none">
+                                                <i class="fa-solid fa-image"></i> ดูรูปภาพ
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ticket.location }}</td>
+                                    <td>
+                                        {% if ticket.urgency == 'ด่วนมาก' %}
+                                            <span class="badge bg-danger">ด่วนมาก</span>
+                                        {% elif ticket.urgency == 'ด่วน' %}
+                                            <span class="badge bg-warning text-dark">ด่วน</span>
+                                        {% else %}
+                                            <span class="badge bg-success">ปกติ</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if ticket.status == 'pending' %}
+                                            <span class="badge bg-secondary">รอดำเนินการ</span>
+                                        {% elif ticket.status == 'in_progress' %}
+                                            <span class="badge bg-info text-dark">กำลังซ่อม</span>
+                                        {% else %}
+                                            <span class="badge bg-success">เสร็จสิ้น</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- 🆕 Column บันทึกการซ่อม — เห็นเฉพาะ Admin -->
+                                    {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+                                    <td>
+                                        {% if ticket.resolved_note %}
+                                            <span class="resolved-note-cell text-success small"
+                                                  data-bs-toggle="tooltip"
+                                                  data-bs-placement="top"
+                                                  title="{{ ticket.resolved_note }}">
+                                                <i class="fa-solid fa-circle-check me-1"></i>{{ ticket.resolved_note }}
+                                            </span>
+                                            {% if ticket.resolved_at %}
+                                            <br><small class="text-muted">{{ ticket.resolved_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+
+                                    <td>
+                                        <!-- ปุ่มแก้ไข / ลบ — เห็นเฉพาะเจ้าของ หรือ Admin -->
+                                        {% if ticket.status == 'pending' %}
+                                            {% if ticket.user_id == current_user.id or current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+                                                <a href="/repair/edit/{{ ticket.id }}" class="btn btn-sm btn-outline-warning text-dark mb-1">
+                                                    <i class="fa-solid fa-pen"></i>
+                                                </a>
+                                                <form action="/repair/delete/{{ ticket.id }}" method="POST" class="d-inline"
+                                                    onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+
+                                        {% elif ticket.status == 'in_progress' %}
+                                            <i class="fa-solid fa-spinner text-warning"></i> กำลังดำเนินการซ่อม
+
+                                        {% else %}
+                                            <i class="fa-solid fa-check-circle text-success"></i> ปิดงานแล้ว
+
+                                        {% endif %}
+
+                                    </td>
+
+                                    <!-- ปุ่มจัดการ -->
+                                    <td>
+                                    {% if ticket.status != 'done' %}
+                                        {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+
+                                            {% if ticket.status == 'pending' %}
+                                            <form action="/repair/update_status/{{ ticket.id }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('รับงาน #{{ ticket.id }} เข้าสู่สถานะ กำลังซ่อม?');">
+                                                <input type="hidden" name="action" value="accept">
+                                                <button type="submit" class="btn btn-sm btn-outline-info mb-1" title="รับงาน">
+                                                    <i class="fa-solid fa-screwdriver-wrench"></i> รับงาน
+                                                </button>
+                                            </form>
+
+                                            {% elif ticket.status == 'in_progress' %}
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success mb-1"
+                                                    title="ปิดงาน"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#closeModal"
+                                                    data-ticket-id="{{ ticket.id }}"
+                                                    data-ticket-subject="{{ ticket.subject }}">
+                                                <i class="fa-solid fa-circle-check"></i> ปิดงาน
+                                            </button>
+                                            {% endif %}
+
+                                        {% else %}
+                                            <i class="fa-solid fa-lock text-muted"></i> <span class="text-muted" style="font-size: 0.8rem;">NOT YOUR RECORD</span>
+                                        {% endif %}
+                                        
+                                    {% else %}
+                                        <i class="fa-regular fa-thumbs-up text-success"></i> <span class="text-success">ปิดงานแล้ว</span>
+                                    {% endif %}
+                                </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 🆕 Modal: ปิดงาน + กรอกบันทึกผลการซ่อม -->
+<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="closeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px;">
+            <div class="modal-header bg-success text-white" style="border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title fw-bold" id="closeModalLabel">
+                    <i class="fa-solid fa-circle-check me-2"></i> ปิดงานแจ้งซ่อม
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="closeForm" method="POST">
+                <input type="hidden" name="action" value="close">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fa-solid fa-hashtag me-1"></i>
+                        <span id="modalTicketInfo" class="fw-bold"></span>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">บันทึกผลการซ่อม <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="resolved_note" rows="4"
+                                  placeholder="เช่น เปลี่ยน RAM 8GB, ติดตั้ง Driver ใหม่, Reset การตั้งค่าเครือข่าย..."
+                                  required style="border-radius: 10px;"></textarea>
+                        <div class="form-text text-muted">กรอกสิ่งที่ดำเนินการไปเพื่อเป็นข้อมูลอ้างอิง</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark me-1"></i> ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-success fw-bold">
+                        <i class="fa-solid fa-circle-check me-1"></i> ยืนยันปิดงาน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#repairTable').DataTable({
+            responsive: true,
+            language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
+            order: [[0, 'desc']]
+        });
+
+        // 🆕 เมื่อเปิด Modal ปิดงาน — ดึง ticket id และ subject มาใส่
+        var closeModal = document.getElementById('closeModal');
+        closeModal.addEventListener('show.bs.modal', function(event) {
+            var btn = event.relatedTarget;
+            var ticketId = btn.getAttribute('data-ticket-id');
+            var ticketSubject = btn.getAttribute('data-ticket-subject');
+
+            document.getElementById('closeForm').action = '/repair/update_status/' + ticketId;
+            document.getElementById('modalTicketInfo').textContent = 'ปิดงาน #' + ticketId + ' — ' + ticketSubject;
+
+            // เคลียร์ textarea ทุกครั้งที่เปิด modal ใหม่
+            closeModal.querySelector('textarea[name="resolved_note"]').value = '';
+        });
+
+        // 🆕 เปิด Tooltip สำหรับบันทึกการซ่อมที่ถูก truncate
+        var tooltipEls = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipEls.forEach(function(el) {
+            new bootstrap.Tooltip(el);
+        });
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จองรถบางบาล - BBCenter</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <style>
+        :root {
+            --bg: #F0F2F5;
+            --surface: #FFFFFF;
+            --border: #E4E7ED;
+            --text: #1A1D23;
+            --muted: #6B7280;
+            --vehicle: #8B5CF6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Sarabun', sans-serif;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        /* Hero */
+        .page-hero {
+            background: linear-gradient(135deg, #3B1F8C 0%, #8B5CF6 60%, #A78BFA 100%);
+            border-radius: 20px;
+            padding: 28px 32px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .page-hero::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -60px;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .page-hero::after {
+            content: '';
+            position: absolute;
+            right: 80px;
+            bottom: -80px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .hero-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .hero-sub {
+            opacity: .75;
+            font-size: .9rem;
+        }
+
+        /* Section label */
+        .section-label {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        /* Cards */
+        .surface-card {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1.5px solid var(--border);
+            overflow: hidden;
+        }
+
+        .card-head {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FAFAFA;
+        }
+
+        .card-head h5 {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            margin: 0;
+        }
+
+        /* Table */
+        .data-table th {
+            font-size: .75rem;
+            color: var(--muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            background: #F8FAFC;
+            padding: 12px 16px;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            font-size: .88rem;
+            vertical-align: middle;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        /* Status badges */
+        .badge-pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge-approved {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-rejected {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .badge-waiting {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        /* Booking form card */
+        .form-section-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700;
+            font-size: .85rem;
+            color: var(--vehicle);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1.5px solid #EDE9FE;
+        }
+
+        .form-label {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            font-size: .9rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--vehicle);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, .1);
+        }
+
+        .btn-vehicle {
+            background: var(--vehicle);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            padding: 10px 28px;
+            font-size: .92rem;
+            transition: background .15s, filter .15s;
+        }
+
+        .btn-vehicle:hover {
+            background: #7C3AED;
+            color: #fff;
+            filter: brightness(.92);
+        }
+
+        /* Trip group badge */
+        .trip-group-pill {
+            font-size: .73rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: #EDE9FE;
+            color: #5B21B6;
+        }
+
+        /* Fade animation */
+        .fade-up {
+            animation: fadeUp .4s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .delay-1 {
+            animation-delay: .05s;
+        }
+
+        .delay-2 {
+            animation-delay: .10s;
+        }
+
+        .delay-3 {
+            animation-delay: .15s;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="container py-4" style="max-width:1200px;">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" style="border-radius:12px;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Hero -->
+        <div class="page-hero fade-up">
+            <div class="d-flex align-items-center justify-content-between position-relative" style="z-index:1;">
+                <div>
+                    <div class="hero-title">
+                        <i class="fa-solid fa-van-shuttle me-2"></i> จองรถบางบาล
+                    </div>
+                    <div class="hero-sub">ตรวจสอบรายการจองและส่งคำขอได้ที่นี่</div>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if current_user.role_vehicle == 'admin' or current_user.is_superadmin %}
+                    <a href="{{ url_for('vehicle.admin_trips') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
+                        <i class="fa-solid fa-route me-1"></i> อนุมัติการจอง (Admin)
+                    </a>
+                    <a href="{{ url_for('vehicle.mileage_log') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
+                        <i class="fa-solid fa-gauge-high me-1"></i> บันทึกเลขไมล์ (Driver)
+                    </a>
+                    {% elif current_user.role_vehicle == 'driver' %}
+                    <a href="{{ url_for('vehicle.mileage_log') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
+                        <i class="fa-solid fa-gauge-high me-1"></i> บันทึกเลขไมล์ (Driver)
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('vehicle.calendar_view') }}" class="btn btn-sm fw-bold"
+                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
+                        <i class="fa-solid fa-calendar me-1"></i> ปฏิทินเดินรถ
+                    </a>
+                    <button class="btn btn-sm fw-bold" style="background:#fff;color:var(--vehicle);border-radius:10px;"
+                        data-bs-toggle="modal" data-bs-target="#bookModal">
+                        <i class="fa-solid fa-plus me-1"></i> จองรถ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats row (admin only) -->
+        {% if current_user.role_vehicle == 'admin' or current_user.is_superadmin %}
+        <div class="row g-3 mb-4 fade-up delay-1">
+            <div class="col-6 col-md-3">
+                <div class="surface-card p-3 d-flex align-items-center gap-3">
+                    <div
+                        style="width:42px;height:42px;border-radius:12px;background:#EDE9FE;display:flex;align-items:center;justify-content:center;color:var(--vehicle);">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <div
+                            style="font-family:'IBM Plex Sans Thai',sans-serif;font-size:1.4rem;font-weight:700;line-height:1;">
+                            {{ bookings|selectattr('status','eq','pending')|list|length }}</div>
+                        <div style="font-size:.78rem;color:var(--muted);">รออนุมัติ</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="surface-card p-3 d-flex align-items-center gap-3">
+                    <div
+                        style="width:42px;height:42px;border-radius:12px;background:#D1FAE5;display:flex;align-items:center;justify-content:center;color:#10B981;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <div
+                            style="font-family:'IBM Plex Sans Thai',sans-serif;font-size:1.4rem;font-weight:700;line-height:1;">
+                            {{ bookings|selectattr('status','eq','approved')|list|length }}</div>
+                        <div style="font-size:.78rem;color:var(--muted);">อนุมัติแล้ว</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="surface-card p-3 d-flex align-items-center gap-3">
+                    <div
+                        style="width:42px;height:42px;border-radius:12px;background:#FEE2E2;display:flex;align-items:center;justify-content:center;color:#EF4444;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </div>
+                    <div>
+                        <div
+                            style="font-family:'IBM Plex Sans Thai',sans-serif;font-size:1.4rem;font-weight:700;line-height:1;">
+                            {{ bookings|selectattr('status','eq','rejected')|list|length }}</div>
+                        <div style="font-size:.78rem;color:var(--muted);">ไม่อนุมัติ</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="surface-card p-3 d-flex align-items-center gap-3">
+                    <div
+                        style="width:42px;height:42px;border-radius:12px;background:#F0F2F5;display:flex;align-items:center;justify-content:center;color:var(--muted);">
+                        <i class="fa-solid fa-list"></i>
+                    </div>
+                    <div>
+                        <div
+                            style="font-family:'IBM Plex Sans Thai',sans-serif;font-size:1.4rem;font-weight:700;line-height:1;">
+                            {{ bookings|length }}</div>
+                        <div style="font-size:.78rem;color:var(--muted);">รายการทั้งหมด</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ตารางรายการ -->
+        <div class="fade-up delay-2">
+            <div class="section-label">รายการจองรถทั้งหมด</div>
+            <div class="surface-card">
+                <div class="card-head">
+                    <h5><i class="fa-solid fa-list-check me-2" style="color:var(--vehicle);"></i>
+                        {% if current_user.role_vehicle == 'admin' or current_user.is_superadmin %}
+                        รายการทั้งระบบ
+                        {% else %}
+                        รายการของฉัน
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table id="vehicleTable" class="table data-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้จอง</th>
+                                <th>ปลายทาง / วัตถุประสงค์</th>
+                                <th>วันเดินทาง</th>
+                                <th>รถที่ได้รับ</th>
+                                <th>คนขับ</th>
+                                <th>กลุ่มทริป</th>
+                                <th>สถานะ</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr>
+                                <td class="text-muted fw-bold">#{{ b.id }}</td>
+                                <td>
+                                    <div class="fw-bold">{{ b.user.full_name or b.user.username }}</div>
+                                    <small class="text-muted">{{ b.user.department or '' }}</small>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">
+                                        <i class="fa-solid fa-location-dot text-danger fa-xs me-1"></i>{{ b.destination
+                                        }}
+                                    </div>
+                                    <small class="text-muted">{{ b.purpose }}</small>
+                                </td>
+                                <td style="white-space:nowrap; font-size:.82rem;">
+                                    <i class="fa-regular fa-calendar me-1 text-muted"></i>
+                                    {{ b.start_datetime.strftime('%d/%m/%Y %H:%M') }}<br>
+                                    <span class="text-muted">ถึง {{ b.end_datetime.strftime('%d/%m/%Y %H:%M') }}</span>
+                                </td>
+                                <td>
+                                    {% if b.assigned_vehicle %}
+                                    <div class="fw-bold" style="font-size:.85rem;">{{ b.assigned_vehicle.brand }} {{
+                                        b.assigned_vehicle.model }}</div>
+                                    <small class="text-muted">{{ b.assigned_vehicle.license_plate }}</small>
+                                    {% elif b.vehicle %}
+                                    <div style="font-size:.85rem; color:var(--muted);">{{ b.vehicle.brand }} {{
+                                        b.vehicle.model }}</div>
+                                    <small class="text-muted">(รอกำหนด)</small>
+                                    {% else %}
+                                    <span class="text-muted small">รอ Admin กำหนด</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not b.need_driver %}
+                                    <span class="text-success small fw-bold">ขับเอง 🚗</span>
+                                    {% elif b.driver %}
+                                    <div style="font-size:.83rem;" class="fw-bold">{{ b.driver.name }}</div>
+                                    <small class="text-muted">{{ b.driver.phone }}</small>
+                                    {% else %}
+                                    <span class="text-warning small fw-bold">รอมอบหมาย</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.trip_group %}
+                                    <span class="trip-group-pill">
+                                        <i class="fa-solid fa-people-group fa-xs me-1"></i>{{ b.trip_group }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.status == 'pending' %}
+                                    <span class="badge rounded-pill badge-pending">รออนุมัติ</span>
+                                    {% elif b.status == 'approved' %}
+                                    <span class="badge rounded-pill badge-approved">อนุมัติแล้ว</span>
+                                    {% elif b.status == 'rejected' %}
+                                    <span class="badge rounded-pill badge-rejected">ไม่อนุมัติ</span>
+                                    {% elif b.status == 'waiting_approver' %}
+                                    <span class="badge rounded-pill badge-waiting">รอ Approver</span>
+                                    {% else %}
+                                    <span class="badge rounded-pill bg-secondary">{{ b.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('vehicle.detail_booking', booking_id=b.id) }}"
+                                        class="btn btn-sm btn-outline-secondary" title="รายละเอียด">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+
+                                    {% if b.user_id == current_user.id or current_user.role_vehicle == 'admin' or
+                                    current_user.is_superadmin %}
+                                    {% if b.status == 'pending' %}
+                                    <a href="{{ url_for('vehicle.edit_booking', booking_id=b.id) }}"
+                                        class="btn btn-sm btn-outline-warning" title="แก้ไข">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <form action="{{ url_for('vehicle.delete_booking', booking_id=b.id) }}"
+                                        method="POST" class="d-inline"
+                                        onsubmit="return confirm('ยืนยันยกเลิกการจองนี้?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ยกเลิก">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== Modal จองรถ ===== -->
+    <div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg" style="border-radius:20px; overflow:hidden;">
+                <form action="{{ url_for('vehicle.book_vehicle_simple') }}" method="POST">
+
+                    <!-- Header -->
+                    <div style="background:linear-gradient(135deg,#3B1F8C,#8B5CF6);padding:22px 28px;color:#fff;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="fw-bold mb-0">
+                                <i class="fa-solid fa-van-shuttle me-2"></i> ส่งคำขอจองรถ
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div style="opacity:.7;font-size:.82rem;margin-top:4px;">Admin จะพิจารณาและกำหนดรถให้ภายหลัง
+                        </div>
+                    </div>
+
+                    <div class="modal-body p-4">
+
+                        <!-- ผู้จอง -->
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-user me-2"></i>ผู้จอง
+                        </div>
+                        <div class="mb-4 p-3 rounded-3" style="background:#F5F3FF;border:1.5px solid #EDE9FE;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div
+                                    style="width:40px;height:40px;border-radius:12px;background:var(--vehicle);display:flex;align-items:center;justify-content:center;color:#fff;">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold">{{ current_user.full_name or current_user.username }}</div>
+                                    <small class="text-muted">{{ current_user.department or '' }} · {{
+                                        current_user.email or '' }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ข้อมูลการเดินทาง -->
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-route me-2"></i>ข้อมูลการเดินทาง
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">วัน-เวลา ไป <span class="text-danger">*</span></label>
+                                <input type="text" name="start_datetime" class="form-control datetimepicker"
+                                    placeholder="เลือกวันและเวลา" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">วัน-เวลา กลับ <span class="text-danger">*</span></label>
+                                <input type="text" name="end_datetime" class="form-control datetimepicker"
+                                    placeholder="เลือกวันและเวลา" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">สถานที่ปลายทาง <span class="text-danger">*</span></label>
+                                <input type="text" name="destination" class="form-control"
+                                    placeholder="เช่น จังหวัดชลบุรี, อำเภอบางบาล" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">วัตถุประสงค์การเดินทาง <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" name="purpose" class="form-control"
+                                    placeholder="เช่น ประชุมสาขา, ส่งเอกสาร" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">จำนวนผู้เดินทาง <span class="text-danger">*</span></label>
+                                <input type="number" name="passenger_count" class="form-control" min="1" value="1"
+                                    required>
+                            </div>
+                        </div>
+
+                        <!-- ตัวเลือกเพิ่มเติม -->
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-sliders me-2"></i>ตัวเลือก
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background:#F8FAFC;border:1.5px solid var(--border);">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="need_driver"
+                                            id="needDriver" style="width:2.2em;height:1.2em;">
+                                        <label class="form-check-label fw-bold ms-2" for="needDriver">
+                                            ต้องการพนักงานขับรถ 🧑‍✈️
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1 ms-1">Admin จะมอบหมายคนขับให้</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded-3" style="background:#F0FDF4;border:1.5px solid #BBF7D0;">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" name="allow_join" id="allowJoin"
+                                            checked style="width:2.2em;height:1.2em;">
+                                        <label class="form-check-label fw-bold ms-2" for="allowJoin">
+                                            อนุญาตให้ติดรถร่วมทาง 🤝
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1 ms-1">ช่วยประหยัดค่าใช้จ่ายองค์กร</small>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer border-0 px-4 pb-4 pt-2">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius:10px;">ยกเลิก</button>
+                        <button type="submit" class="btn-vehicle btn px-4">
+                            <i class="fa-solid fa-paper-plane me-2"></i>ส่งคำขอจองรถ
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            flatpickr(".datetimepicker", {
+                enableTime: true,
+                time_24hr: true,
+                minuteIncrement: 15,
+                locale: "th",
+                dateFormat: "Y-m-d\\TH:i",
+                altInput: true,
+                altFormat: "d/m/Y H:i",
+                minDate: "today"
+            });
+
+            $('#vehicleTable').DataTable({
+                responsive: true,
+                language: {
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    zeroRecords: "ไม่พบข้อมูล",
+                    info: "แสดง _START_-_END_ จาก _TOTAL_ รายการ",
+                    infoEmpty: "ไม่มีข้อมูล",
+                    infoFiltered: "(กรองจาก _MAX_ รายการ)",
+                    search: "ค้นหา:",
+                    emptyTable: "ยังไม่มีข้อมูลในตาราง",
+                    paginate: { first: "หน้าแรก", last: "หน้าสุดท้าย", next: "ถัดไป", previous: "ก่อนหน้า" }
+                },
+                columnDefs: [
+                    { orderable: false, targets: [8] },
+                    { responsivePriority: 1, targets: 0 },  /* ID */
+                    { responsivePriority: 2, targets: 1 },  /* ผู้จอง */
+                    { responsivePriority: 3, targets: 7 },  /* สถานะ */
+                    { responsivePriority: 4, targets: 8 },  /* จัดการ */
+                    { responsivePriority: 5, targets: 3 },  /* วันเดินทาง */
+                    { responsivePriority: 6, targets: 2 },  /* ปลายทาง */
+                    { responsivePriority: 7, targets: 4 },  /* รถ */
+                    { responsivePriority: 8, targets: 5 },  /* คนขับ */
+                    { responsivePriority: 9, targets: 6 }   /* กลุ่มทริป */
+                ],
+                order: [['desc']],
+                pageLength: 25
+            });
+
+        });
+    </script>
+</body>
+
+</html>

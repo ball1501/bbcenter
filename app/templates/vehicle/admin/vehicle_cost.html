@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สรุปค่าใช้จ่ายรถ</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    <style>
+        body { background:#F0F2F5; font-family:'Sarabun', sans-serif; }
+        .page-hero {
+            background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 60%, #3B82F6 100%);
+            border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; color: #fff;
+        }
+        .surface-card { background:#fff; border-radius:14px; border:none; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+        .stat-card { border-radius:12px; padding:16px 20px; }
+        .exp-central    { background:#EFF6FF; border-left:4px solid #3B82F6; }
+        .exp-department { background:#F0FDF4; border-left:4px solid #22C55E; }
+        .exp-personal   { background:#FFF7ED; border-left:4px solid #F97316; }
+        .exp-unknown    { background:#F9FAFB; border-left:4px solid #9CA3AF; }
+        .badge-central    { background:#DBEAFE; color:#1E40AF; }
+        .badge-department { background:#DCFCE7; color:#166534; }
+        .badge-personal   { background:#FFEDD5; color:#9A3412; }
+        .badge-unknown    { background:#F3F4F6; color:#374151; }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+
+<div class="container py-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert" style="border-radius:10px;">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- Hero -->
+    <div class="page-hero">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-pie me-2"></i> สรุปค่าใช้จ่ายรถ</h4>
+                <div style="opacity:.85;font-size:.9rem;">ค่าน้ำมัน + ค่า OT คนขับ แยกตามประเภทงาน</div>
+            </div>
+            <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="surface-card p-3 mb-4">
+        <form method="GET" action="/admin/cost" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-1">ปี (พ.ศ.)</label>
+                <select name="year" class="form-select form-select-sm">
+                    {% for y in range(now.year - 1, now.year + 2) %}
+                    <option value="{{ y }}" {% if y == sel_year %}selected{% endif %}>{{ y + 543 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-1">เดือน</label>
+                <select name="month" class="form-select form-select-sm">
+                    {% set th_months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'] %}
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == sel_month %}selected{% endif %}>{{ th_months[m] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-1">ประเภทค่าใช้จ่าย</label>
+                <select name="expense_type" class="form-select form-select-sm">
+                    <option value="">ทั้งหมด</option>
+                    <option value="central"    {% if sel_expense == 'central'    %}selected{% endif %}>งานส่วนกลาง</option>
+                    <option value="department" {% if sel_expense == 'department' %}selected{% endif %}>งานหน่วยงาน</option>
+                    <option value="personal"   {% if sel_expense == 'personal'   %}selected{% endif %}>งานส่วนตัว</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> ค้นหา
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="surface-card stat-card exp-central">
+                <div class="text-muted small mb-1">🏛 งานส่วนกลาง</div>
+                <div class="fw-bold fs-4 text-primary">{{ '{:,.0f}'.format(totals.central) }} <small class="fs-6 fw-normal">บาท</small></div>
+                <div class="text-muted" style="font-size:.75rem;">ส่วนกลางออกค่าใช้จ่าย</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="surface-card stat-card exp-department">
+                <div class="text-muted small mb-1">🏢 งานหน่วยงาน</div>
+                <div class="fw-bold fs-4 text-success">{{ '{:,.0f}'.format(totals.department) }} <small class="fs-6 fw-normal">บาท</small></div>
+                <div class="text-muted" style="font-size:.75rem;">หน่วยงานออกค่าใช้จ่าย</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="surface-card stat-card exp-personal">
+                <div class="text-muted small mb-1">👤 งานส่วนตัว</div>
+                <div class="fw-bold fs-4 text-warning">{{ '{:,.0f}'.format(totals.personal) }} <small class="fs-6 fw-normal">บาท</small></div>
+                <div class="text-muted" style="font-size:.75rem;">ผู้จองออกค่าใช้จ่ายเอง</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ตาราง -->
+    <div class="surface-card p-3">
+        <div class="card-head d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-bold mb-0"><i class="fa-solid fa-table me-2 text-primary"></i> รายละเอียดทั้งหมด</h6>
+            <span class="badge bg-light text-dark">{{ rows|length }} รายการ</span>
+        </div>
+        <table id="costTable" class="table table-hover align-middle mb-0" style="width:100%">
+            <thead class="table-light">
+                <tr>
+                    <th>no</th>
+                    <th>ผู้จอง / ปลายทาง</th>
+                    <th>รถ / คนขับ</th>
+                    <th>เวลาเดินทาง</th>
+                    <th>ระยะทาง</th>
+                    <th>เวลาจริง</th>
+                    <th>ค่าน้ำมัน</th>
+                    <th>OT คนขับ</th>
+                    <th>รวม</th>
+                    <th>ประเภท</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                {% set b = r.booking %}
+                {% set m = r.mileage %}
+                <tr>
+                    <td data-order="{{ b.id }}">
+                        <span class="fw-bold text-muted">#{{ b.id }}</span></td>
+                    <td>
+                        <div class="fw-bold" style="font-size:.88rem;">{{ b.user.full_name or b.user.username }}</div>
+                        <small class="text-muted">📍 {{ b.destination }}</small>
+                        {% if b.central_category %}
+                        <br><span class="badge bg-light text-primary" style="font-size:.72rem;">{{ b.central_category }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if b.assigned_vehicle %}
+                        <div style="font-size:.85rem;">{{ b.assigned_vehicle.brand }} {{ b.assigned_vehicle.model }}</div>
+                        <small class="text-muted">{{ b.assigned_vehicle.license_plate }}</small>
+                        {% else %}<span class="text-muted small">-</span>{% endif %}
+                        {% if b.driver %}<br><small class="text-info">👨‍✈️ {{ b.driver.name }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if b.start_datetime.strftime('%d/%m/%Y') != b.end_datetime.strftime('%d/%m/%Y') %}
+                        <small>{{ b.start_datetime.strftime('%d/%m/%Y') }}</small><br>
+                        <small class="text-muted">ถึง</small><br>
+                        <small>{{ b.end_datetime.strftime('%d/%m/%Y') }}</small>
+                        {% else %}
+                        <small>{{ b.start_datetime.strftime('%d/%m/%Y') }}</small><br>
+                        <small class="text-muted">{{ b.start_datetime.strftime('%H:%M') }} → {{ b.end_datetime.strftime('%H:%M') }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.distance %}
+                        <span class="fw-bold">{{ '{:,}'.format(r.distance) }}</span> <small class="text-muted">กม.</small>
+                        {% else %}<span class="text-muted">-</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if m and m.actual_start and m.actual_end %}
+                        <small>{{ m.actual_start.strftime('%H:%M') }} → {{ m.actual_end.strftime('%H:%M') }}</small>
+                        {% else %}<span class="text-muted small">ยังไม่กรอก</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.fuel %}
+                        <span class="fw-bold text-warning">{{ '{:,.0f}'.format(r.fuel) }}</span> <small>฿</small>
+                        {% else %}<span class="text-muted">-</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.ot > 0 %}
+                        <span class="fw-bold text-danger">{{ '{:,.0f}'.format(r.ot) }}</span> <small>฿</small>
+                        {% elif not b.need_driver %}
+                        <span class="text-muted small">ขับเอง</span>
+                        {% else %}
+                        <span class="text-muted">-</span>{% endif %}
+                    </td>
+                    <td>
+                        <span class="fw-bold">{{ '{:,.0f}'.format(r.total) }}</span> <small class="text-muted">฿</small>
+                    </td>
+                    <td>
+                        {% if b.expense_type == 'central' %}
+                            <span class="badge badge-central px-2">🏛 ส่วนกลาง</span>
+                        {% elif b.expense_type == 'department' %}
+                            <span class="badge badge-department px-2">🏢 หน่วยงาน</span>
+                        {% elif b.expense_type == 'personal' %}
+                            <span class="badge badge-personal px-2">👤 ส่วนตัว</span>
+                        {% else %}
+                            <span class="badge badge-unknown px-2">ไม่ระบุ</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="table-light fw-bold">
+                    <td colspan="6" class="text-end">รวมทั้งหมด</td>
+                    <td>{{ '{:,.0f}'.format(rows | sum(attribute='fuel')) }} ฿</td>
+                    <td>{{ '{:,.0f}'.format(rows | sum(attribute='ot')) }} ฿</td>
+                    <td>{{ '{:,.0f}'.format(rows | sum(attribute='total')) }} ฿</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+<script>
+$(document).ready(function() {
+    $('#costTable').DataTable({
+        responsive: true,
+        language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
+        order: [[0,'desc']],
+        pageLength: 50,
+        footerCallback: function() { this.api().columns().footer(); }
+    });
+});
+</script>
+</body>
+</html>

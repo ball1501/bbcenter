@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการผู้ใช้งาน</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-5 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill"></i> จัดการสิทธิ์ผู้ใช้งาน (User Management)</h2>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="userTable" class="table table-hover table-bordered align-middle w-100">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Username</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>หน่วยงาน</th>
+                            <th>แจ้งซ่อมIT</th>
+                            <th>แจ้งซ่อมบำรุงรักษา</th>
+                            <th>จองรถ</th>
+                            <th>จองห้อง</th>
+                            <th class="text-center">Super Admin</th>
+                            <th class="text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.full_name or '-' }}</td>
+                            <td>
+                                <select name="department" form="form_{{ user.id }}" class="form-select form-select-sm">
+                                    <option value="" {% if user.department == '' %}selected{% endif %}>--เลือกหน่วยงาน--</option>
+                                    <option value="bangban" {% if user.department == 'กองสนับสนุนและบริการ' %}selected{% endif %}>กองสนับสนุนและบริการ</option>
+                                    <option value="academic_dci" {% if user.department == 'กองวิชาการ' %}selected{% endif %}>กองวิชาการ</option>
+                                    <option value="dou" {% if user.department == 'กองDOU' %}selected{% endif %}>กองDOU</option>
+                                    <option value="management_dci" {% if user.department == 'กองบริหาร' %}selected{% endif %}>กองบริหาร</option>
+                                    <option value="secretary" {% if user.department == 'กองเลขานุการ' %}selected{% endif %}>กองเลขานุการ</option>
+                                    <option value="student_affairs" {% if user.department == 'กองกิจการนิสิต' %}selected{% endif %}>กองกิจการนิสิต</option>
+                                    <option value="tripitaka" {% if user.department == 'กองพระไตรปิฏก' %}selected{% endif %}>กองพระไตรปิฏก</option>
+                                </select>
+                            </td>
+                            
+                            <td>
+                                <select name="role_repair" form="form_{{ user.id }}" class="form-select form-select-sm">
+                                    <option value="user" {% if user.role_repair == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
+                                    <option value="admin" {% if user.role_repair == 'admin' %}selected{% endif %}>ผู้จัดการช่างIT(admin)</option>
+                                    <option value="technician" {% if user.role_repair == 'technician' %}selected{% endif %}>ช่างซ่อมIT</option>
+                                </select>
+                            </td>
+
+                            <td>
+                                <select name="role_maintenance" form="form_{{ user.id }}" class="form-select form-select-sm">
+                                    <option value="user" {% if user.role_maintenance == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
+                                    <option value="admin" {% if user.role_maintenance == 'admin' %}selected{% endif %}>ผู้จัดการช่างบำรุงรักษา(admin)</option>
+                                    <option value="technician" {% if user.role_maintenance == 'technician' %}selected{% endif %}>ช่างซ่อมบำรุงรักษา</option>
+                                </select>
+                            </td>
+
+                            <td>
+                                <select name="role_vehicle" form="form_{{ user.id }}" class="form-select form-select-sm">
+                                    <option value="user" {% if user.role_vehicle == 'user' %}selected{% endif %}>ผู้จอง</option>
+                                    <option value="admin" {% if user.role_vehicle == 'admin' %}selected{% endif %}>ผู้ดูแลคิวรถ(admin)</option>
+                                    <option value="approver" {% if user.role_vehicle == 'approver' %}selected{% endif %}>ผู้อนุมัติ(ผู้จัดการกอง)</option>
+                                    <option value="driver" {% if user.role_vehicle == 'driver' %}selected{% endif %}>ผู้ขับรถ</option>
+                                </select>
+                            </td>
+
+                            <td>
+                                <select name="role_room" form="form_{{ user.id }}" class="form-select form-select-sm">
+                                    <option value="user" {% if user.role_room == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
+                                    <option value="admin" {% if user.role_room == 'admin' %}selected{% endif %}>ผู้ดูแลห้อง</option>
+                                </select>
+                            </td>
+
+                            <td class="text-center">
+                                <input class="form-check-input" type="checkbox" name="is_superadmin" value="1" form="form_{{ user.id }}" {% if user.is_superadmin %}checked{% endif %}>
+                            </td>
+
+                            <td class="text-center">
+                                <form id="form_{{ user.id }}" action="/update_user/{{ user.id }}" method="POST" class="m-0 p-0">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">บันทึก</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js')}}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#userTable').DataTable({
+            // การดึงไฟล์ภาษาไทยของ DataTables
+            language: {
+                // url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/th.json" 
+                url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" 
+            },
+            // ปิดการเรียงลำดับที่คอลัมน์ "จัดการ" (index ที่ 6)
+            columnDefs: [
+                { orderable: false, targets: 6 }
+            ]
+        });
+    });
+</script>
+
+</body>
+</html>

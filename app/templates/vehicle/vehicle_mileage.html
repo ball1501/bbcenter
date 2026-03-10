@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกเลขไมล์</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <style>
+        body { background:#F0F2F5; font-family:'Sarabun', sans-serif; }
+        .page-hero {
+            background: linear-gradient(135deg, #0F766E 0%, #0D9488 60%, #14B8A6 100%);
+            border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; color: #fff;
+        }
+        .surface-card { background:#fff; border-radius:14px; border:none; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+        .badge-pending    { background:#FEF3C7; color:#92400E; }
+        .badge-no-mile    { background:#FEE2E2; color:#991B1B; }
+        .badge-partial    { background:#E0F2FE; color:#0369A1; }
+        .badge-complete   { background:#D1FAE5; color:#065F46; }
+        .mile-btn { border-radius:8px; font-size:.82rem; font-weight:600; padding:4px 12px; }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+
+<div class="container py-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert" style="border-radius:10px;">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- Hero -->
+    <div class="page-hero">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gauge-high me-2"></i> บันทึกเลขไมล์</h4>
+                <div style="opacity:.85; font-size:.9rem;">กรอกเลขไมล์ก่อนออกและหลังกลับทุกครั้ง</div>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-white text-dark px-3 py-2">รายการที่ approved: {{ bookings|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ตาราง -->
+    <div class="surface-card p-3">
+        <table id="mileageTable" class="table table-hover align-middle mb-0" style="width:100%">
+            <thead class="table-light">
+                <tr>
+                    <th>no</th>
+                    <th>รายละเอียดการจอง</th>
+                    <th>รถ / คนขับ</th>
+                    <th>วันเดินทาง</th>
+                    <th>ไมล์ก่อนออก</th>
+                    <th>ไมล์หลังกลับ</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                {% set m = b.mileage[0] if b.mileage else none %}
+                <tr>
+                    <td data-order="{{ b.id }}">
+                        <div class="fw-bold">#{{ b.id }}</div>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ b.user.full_name or b.user.username }}</small><br>
+                        <small class="text-muted">📍 {{ b.destination }}</small>
+                    </td>
+                    <td>
+                        {% if b.assigned_vehicle %}
+                        <div class="fw-bold" style="font-size:.85rem;">{{ b.assigned_vehicle.brand }} {{ b.assigned_vehicle.model }}</div>
+                        <small class="text-muted">{{ b.assigned_vehicle.license_plate }}</small>
+                        {% else %}<span class="text-muted small">ยังไม่กำหนด</span>{% endif %}
+                        {% if b.driver %}<br><small class="text-info">👨‍✈️ {{ b.driver.name }}</small>{% endif %}
+                    </td>
+                    <td>
+                        <small>{{ b.start_datetime.strftime('%d/%m/%Y %H:%M') }}</small><br>
+                        <small class="text-muted">→ {{ b.end_datetime.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </td>
+                    <td>
+                        {% if m and m.odometer_start %}
+                            <span class="fw-bold text-success">{{ '{:,}'.format(m.odometer_start) }}</span>
+                            <br><small class="text-muted">{{ m.actual_start.strftime('%d/%m %H:%M') if m.actual_start else '' }}</small>
+                        {% else %}
+                            <span class="text-muted small">ยังไม่กรอก</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m and m.odometer_end %}
+                            <span class="fw-bold text-primary">{{ '{:,}'.format(m.odometer_end) }}</span>
+                            <br><small class="text-muted">{{ m.actual_end.strftime('%d/%m %H:%M') if m.actual_end else '' }}</small>
+                            {% if m.odometer_start %}
+                            <br><small class="text-success fw-bold">+{{ '{:,}'.format(m.odometer_end - m.odometer_start) }} กม.</small>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted small">ยังไม่กรอก</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m and m.odometer_start and m.odometer_end %}
+                            <span class="badge badge-complete px-2 py-1">✅ ครบแล้ว</span>
+                        {% elif m and m.odometer_start %}
+                            <span class="badge badge-partial px-2 py-1">🔄 รอกรอกกลับ</span>
+                        {% else %}
+                            <span class="badge badge-no-mile px-2 py-1">❌ ยังไม่กรอก</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not m or not m.odometer_start %}
+                        <button class="btn btn-sm btn-outline-success mile-btn mb-1"
+                                data-bs-toggle="modal" data-bs-target="#mileModal"
+                                data-id="{{ b.id }}" data-type="start"
+                                data-label="ก่อนออก — #{{ b.id }} {{ b.destination }}">
+                            <i class="fa-solid fa-play me-1"></i> กรอกก่อนออก
+                        </button>
+                        {% elif not m.odometer_end %}
+                        <button class="btn btn-sm btn-outline-primary mile-btn mb-1"
+                                data-bs-toggle="modal" data-bs-target="#mileModal"
+                                data-id="{{ b.id }}" data-type="end"
+                                data-label="หลังกลับ — #{{ b.id }} {{ b.destination }}"
+                                data-odo-start="{{ m.odometer_start }}">
+                            <i class="fa-solid fa-flag-checkered me-1"></i> กรอกหลังกลับ
+                        </button>
+                        {% else %}
+                        <button class="btn btn-sm btn-outline-secondary mile-btn mb-1"
+                                data-bs-toggle="modal" data-bs-target="#mileModal"
+                                data-id="{{ b.id }}" data-type="end"
+                                data-label="แก้ไขหลังกลับ — #{{ b.id }}"
+                                data-odo-start="{{ m.odometer_start }}">
+                            <i class="fa-solid fa-pen me-1"></i> แก้ไข
+                        </button>
+                        {% endif %}
+
+                        <!-- ค่าน้ำมัน (admin/superadmin เท่านั้น) -->
+                        {% if current_user.is_superadmin or current_user.role_vehicle == 'admin' %}
+                        <button class="btn btn-sm btn-outline-warning mile-btn"
+                                data-bs-toggle="modal" data-bs-target="#fuelModal"
+                                data-id="{{ b.id }}"
+                                data-fuel="{{ m.fuel_cost if m else 0 }}"
+                                data-label="#{{ b.id }} {{ b.destination }}">
+                            <i class="fa-solid fa-gas-pump me-1"></i> ค่าน้ำมัน
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: กรอกไมล์ -->
+<div class="modal fade" id="mileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST" action="/vehicle/mileage">
+                <input type="hidden" name="booking_id" id="mileBookingId">
+                <input type="hidden" name="entry_type" id="mileType">
+                <div class="modal-header border-0" style="background:#CCFBF1;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#0F766E;">
+                        <i class="fa-solid fa-gauge-high me-2"></i>
+                        <span id="mileModalTitle">บันทึกเลขไมล์</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-3 small" id="mileLabel"></p>
+
+                    <!-- ก่อนออก -->
+                    <div id="mileStartWrap">
+                        <div class="mb-1">
+                            <label class="form-label small fw-bold">เลขไมล์ก่อนออก (กม.) <span class="text-danger">*</span></label>
+                            <input type="number" name="odometer_start" id="odoStart" class="form-control" min="0" placeholder="เช่น 125400">
+                        </div>
+                        <input type="hidden" name="actual_start" id="actualStart">
+                        <div class="p-2 mt-2 rounded-3" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                            <small class="text-success"><i class="fa-solid fa-clock me-1"></i> เวลาบันทึก: <span id="tsStartLabel" class="fw-bold">-</span></small>
+                        </div>
+                    </div>
+
+                    <!-- หลังกลับ -->
+                    <div id="mileEndWrap" style="display:none;">
+                        <div class="mb-2 p-2 rounded-3" style="background:#F0FDF4;border:1px solid #BBF7D0;">
+                            <small class="text-success fw-bold">ไมล์ก่อนออก: <span id="odoStartRef">-</span> กม.</small>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label small fw-bold">เลขไมล์หลังกลับ (กม.) <span class="text-danger">*</span></label>
+                            <input type="number" name="odometer_end" id="odoEnd" class="form-control" min="0" placeholder="เช่น 125650">
+                        </div>
+                        <input type="hidden" name="actual_end" id="actualEnd">
+                        <div class="p-2 mt-2 rounded-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                            <small class="text-primary"><i class="fa-solid fa-clock me-1"></i> เวลาบันทึก: <span id="tsEndLabel" class="fw-bold">-</span></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn fw-bold px-4" style="background:#0F766E;color:#fff;border-radius:10px;">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: ค่าน้ำมัน -->
+<div class="modal fade" id="fuelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST" action="/vehicle/mileage">
+                <input type="hidden" name="booking_id" id="fuelBookingId">
+                <input type="hidden" name="entry_type" value="end">
+                <div class="modal-header border-0" style="background:#FEF9C3;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#854D0E;">
+                        <i class="fa-solid fa-gas-pump me-2"></i> กรอกค่าน้ำมัน
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted mb-3 small" id="fuelLabel"></p>
+                    <div class="mb-1">
+                        <label class="form-label small fw-bold">ค่าน้ำมัน (บาท) <span class="text-danger">*</span></label>
+                        <input type="number" name="fuel_cost" id="fuelCostInput" class="form-control" min="0" step="0.01" placeholder="เช่น 850.00">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn fw-bold px-4" style="background:#CA8A04;color:#fff;border-radius:10px;">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+<script>
+$(document).ready(function() {
+    $('#mileageTable').DataTable({
+        responsive: true,
+        language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
+        columnDefs: [
+            { type: 'num', targets: 0 }  // column index 0 = คอลัมน์แรก
+        ],
+        order: [[0,'desc']],
+        pageLength: 25,
+    });
+
+    // Mile Modal
+    document.getElementById('mileModal').addEventListener('show.bs.modal', function(e) {
+        const btn  = e.relatedTarget;
+        const type = btn.dataset.type;
+        document.getElementById('mileBookingId').value   = btn.dataset.id;
+        document.getElementById('mileType').value        = type;
+        document.getElementById('mileLabel').textContent = btn.dataset.label;
+
+        // สร้าง timestamp ปัจจุบัน format Y-m-dTH:i
+        const now    = new Date();
+        const pad    = n => String(n).padStart(2, '0');
+        const tsVal  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        const tsText = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()+543}  ${pad(now.getHours())}:${pad(now.getMinutes())} น.`;
+
+        if (type === 'start') {
+            document.getElementById('mileModalTitle').textContent   = 'บันทึกเลขไมล์ก่อนออก';
+            document.getElementById('mileStartWrap').style.display  = 'block';
+            document.getElementById('mileEndWrap').style.display    = 'none';
+            document.getElementById('odoStart').required            = true;
+            document.getElementById('odoEnd').required              = false;
+            document.getElementById('actualStart').value            = tsVal;
+            document.getElementById('tsStartLabel').textContent     = tsText;
+        } else {
+            document.getElementById('mileModalTitle').textContent   = 'บันทึกเลขไมล์หลังกลับ';
+            document.getElementById('mileStartWrap').style.display  = 'none';
+            document.getElementById('mileEndWrap').style.display    = 'block';
+            document.getElementById('odoStartRef').textContent      = Number(btn.dataset.odoStart || 0).toLocaleString();
+            document.getElementById('odoEnd').required              = true;
+            document.getElementById('odoStart').required            = false;
+            document.getElementById('actualEnd').value              = tsVal;
+            document.getElementById('tsEndLabel').textContent       = tsText;
+        }
+    });
+
+    // Fuel Modal
+    document.getElementById('fuelModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('fuelBookingId').value      = btn.dataset.id;
+        document.getElementById('fuelLabel').textContent    = btn.dataset.label;
+        document.getElementById('fuelCostInput').value      = btn.dataset.fuel || '';
+    });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+This favicon was generated using the following font:
+
+- Font Title: Oxygen
+- Font Author: undefined
+- Font Source: https://fonts.gstatic.com/s/oxygen/v15/2sDfZG1Wl4Lcnbu6iUcnZ0SkAg.ttf
+- Font License: undefined)

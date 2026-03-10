@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแจ้งซ่อมทั่วไป (อาคารสถานที่)</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}"
+        rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}"
+        rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            border-top-left-radius: 15px !important;
+            border-top-right-radius: 15px !important;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+        }
+
+        .btn {
+            border-radius: 10px;
+        }
+
+        .summary-card {
+            border-radius: 12px;
+            border: none;
+            transition: transform .15s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .resolved-note-cell {
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    {% include 'navbar.html' %}
+
+    <div class="container-fluid px-4 pb-5">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert"
+            style="border-radius:10px;">
+            {% if category == 'success' %}<i class="fa-solid fa-circle-check me-2"></i>
+            {% elif category == 'danger' %}<i class="fa-solid fa-circle-xmark me-2"></i>
+            {% elif category == 'warning' %}<i class="fa-solid fa-triangle-exclamation me-2"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- 🆕 Summary Cards — เห็นเฉพาะ Admin -->
+        {% if current_user.role_maintenance == 'admin' or current_user.is_superadmin %}
+        <div class="row g-3 mb-4">
+
+            <div class="col-12 d-flex align-items-center justify-content-between">
+                <h6 class="text-muted fw-bold mb-0">
+                    <i class="fa-solid fa-chart-bar me-2 text-warning"></i>
+                    สรุปประจำเดือน — {{ summary.month_label }}
+                </h6>
+                <!-- ปุ่ม Export Excel -->
+                <button class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#exportModal">
+                    <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                </button>
+            </div>
+
+            <div class="col-6 col-md-3 col-xl">
+                <div class="card summary-card shadow-sm text-center py-3 px-2 bg-white">
+                    <div class="text-muted small mb-1">รายการทั้งหมด</div>
+                    <div class="fw-bold fs-3 text-dark">{{ summary.total }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-xl">
+                <div class="card summary-card shadow-sm text-center py-3 px-2" style="background:#F3F4F6;">
+                    <div class="text-muted small mb-1">รอดำเนินการ</div>
+                    <div class="fw-bold fs-3 text-secondary">{{ summary.pending }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-xl">
+                <div class="card summary-card shadow-sm text-center py-3 px-2" style="background:#E0F2FE;">
+                    <div class="text-muted small mb-1">กำลังดำเนินการ</div>
+                    <div class="fw-bold fs-3 text-info">{{ summary.in_progress }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-xl">
+                <div class="card summary-card shadow-sm text-center py-3 px-2" style="background:#D1FAE5;">
+                    <div class="text-muted small mb-1">เสร็จสิ้น</div>
+                    <div class="fw-bold fs-3 text-success">{{ summary.done }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">รายการ</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-xl">
+                <div class="card summary-card shadow-sm text-center py-3 px-2" style="background:#FEF3C7;">
+                    <div class="text-muted small mb-1">ค่าใช้จ่ายรวม</div>
+                    <div class="fw-bold fs-4 text-warning">{{ "{:,.0f}".format(summary.total_cost) }}</div>
+                    <div class="text-muted" style="font-size:.75rem;">บาท</div>
+                </div>
+            </div>
+
+            <!-- By Category -->
+            {% if summary.by_category %}
+            <div class="col-12">
+                <div class="card shadow-sm px-3 py-2">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="text-muted small fw-bold me-2">แยกตามประเภท:</span>
+                        {% for cat, count in summary.by_category.items() %}
+                        <span class="badge bg-warning text-dark">{{ cat }}: {{ count }} งาน</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endif %}
+
+        <div class="row">
+
+            <!-- ฟอร์มแจ้งซ่อม / แก้ไข -->
+            <div class="col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div
+                        class="card-header {% if edit_ticket %}bg-info text-dark{% else %}bg-warning text-dark{% endif %} py-3">
+                        <h5 class="mb-0 fw-bold">
+                            {% if edit_ticket %}
+                            <i class="fa-solid fa-pen-to-square me-2"></i> แก้ไขแจ้งซ่อมทั่วไป #{{ edit_ticket.id }}
+                            {% else %}
+                            <i class="fa-solid fa-toolbox me-2"></i> ฟอร์มแจ้งซ่อมอาคารสถานที่
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form
+                            action="{% if edit_ticket %}/maintenance/edit/{{ edit_ticket.id }}{% else %}/maintenance{% endif %}"
+                            method="POST" enctype="multipart/form-data">
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">ผู้แจ้ง</label>
+                                <input type="text" class="form-control bg-light"
+                                    value="{{ current_user.full_name or current_user.username }}" readonly>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">ประเภทงานซ่อม <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" name="category" required>
+                                    <option value="" {% if not edit_ticket %}selected{% endif %} disabled>-- เลือกประเภท
+                                        --</option>
+                                    <option value="ไฟฟ้า/แสงสว่าง" {% if edit_ticket and
+                                        edit_ticket.category=='ไฟฟ้า/แสงสว่าง' %}selected{% endif %}>⚡ ระบบไฟฟ้า /
+                                        แสงสว่าง</option>
+                                    <option value="ประปา/ห้องน้ำ" {% if edit_ticket and
+                                        edit_ticket.category=='ประปา/ห้องน้ำ' %}selected{% endif %}>💧 ระบบประปา /
+                                        ท่อน้ำ</option>
+                                    <option value="แอร์/ปรับอากาศ" {% if edit_ticket and
+                                        edit_ticket.category=='แอร์/ปรับอากาศ' %}selected{% endif %}>❄️ เครื่องปรับอากาศ
+                                        (แอร์)</option>
+                                    <option value="อาคาร/เฟอร์นิเจอร์" {% if edit_ticket and
+                                        edit_ticket.category=='อาคาร/เฟอร์นิเจอร์' %}selected{% endif %}>🚪 อาคารสถานที่
+                                        / เฟอร์นิเจอร์</option>
+                                    <option value="อื่นๆ" {% if edit_ticket and edit_ticket.category=='อื่นๆ'
+                                        %}selected{% endif %}>🔧 อื่นๆ</option>
+                                </select>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted small fw-bold">บริเวณ/สถานที่ <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="location"
+                                        placeholder="เช่น อาคาร A ชั้น 2"
+                                        value="{{ edit_ticket.location if edit_ticket else '' }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted small fw-bold">เบอร์ติดต่อกลับ <span
+                                            class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="contact_number"
+                                        placeholder="08X-XXX-XXXX"
+                                        value="{{ edit_ticket.contact_number if edit_ticket else '' }}" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">ความเร่งด่วน <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" name="urgency" required>
+                                    <option value="ปกติ" {% if not edit_ticket or edit_ticket.urgency=='ปกติ'
+                                        %}selected{% endif %}>🟢 ปกติ (ซ่อมตามคิว)</option>
+                                    <option value="ด่วน" {% if edit_ticket and edit_ticket.urgency=='ด่วน' %}selected{%
+                                        endif %}>🟡 ด่วน (รบกวนการทำงาน)</option>
+                                    <option value="ด่วนมาก" {% if edit_ticket and edit_ticket.urgency=='ด่วนมาก'
+                                        %}selected{% endif %}>🔴 ด่วนมาก (อันตราย / น้ำรั่วหนัก)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">ปัญหาที่พบ <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="subject"
+                                    placeholder="เช่น แอร์น้ำหยด, หลอดไฟขาด"
+                                    value="{{ edit_ticket.subject if edit_ticket else '' }}" required>
+                            </div>
+
+                            {% if not edit_ticket %}
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold"><i
+                                        class="fa-solid fa-camera me-1"></i> ถ่ายรูปจุดที่เสีย (ถ้ามี)</label>
+                                <input class="form-control" type="file" name="image" accept="image/*">
+                            </div>
+                            {% endif %}
+
+                            {% if edit_ticket %}
+                            <button type="submit" class="btn btn-info w-100 fw-bold py-2 mb-2"><i
+                                    class="fa-solid fa-save me-1"></i> บันทึกการแก้ไข</button>
+                            <a href="/maintenance" class="btn btn-secondary w-100 fw-bold py-2"><i
+                                    class="fa-solid fa-xmark me-1"></i> ยกเลิก</a>
+                            {% else %}
+                            <button type="submit" class="btn btn-warning w-100 fw-bold py-2 text-dark"><i
+                                    class="fa-solid fa-paper-plane me-1"></i> ส่งเรื่องแจ้งซ่อม</button>
+                            {% endif %}
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ตารางรายการ -->
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-list-ul text-warning me-2"></i>
+                            ประวัติการแจ้งซ่อมทั่วไป</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="maintenanceTable" class="table table-hover table-striped align-middle w-100">
+                                <thead class="table-warning">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>วันที่แจ้ง</th>
+                                        <th>ผู้แจ้ง</th>
+                                        <th>รายละเอียด</th>
+                                        <th>สถานที่/ติดต่อ</th>
+                                        <th>ความเร่งด่วน</th>
+                                        <th>สถานะ</th>
+                                        <th class="text-center">จัดการ</th>
+                                        {% if current_user.role_maintenance == 'admin' or current_user.is_superadmin %}
+                                        <th>ผลการซ่อม</th>
+                                        <th class="text-center">ดำเนินการ</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ticket in tickets %}
+                                    <tr>
+                                        <td data-order="{{ ticket.id }}">#{{ ticket.id }}</td>
+                                        <td>
+                                            {{ ticket.created_at.strftime('%Y-%m-%d') }}<br>
+                                            <small class="text-muted">{{ ticket.created_at.strftime('%H:%M') }}
+                                                น.</small>
+                                        </td>
+                                        <td>{{ ticket.user.full_name or ticket.user.username }}</td>
+                                        <td>
+                                            <span class="fw-bold">{{ ticket.subject }}</span><br>
+                                            <span class="badge bg-light text-dark border">{{ ticket.category }}</span>
+                                            {% if ticket.image_file %}
+                                            <div class="mt-1">
+                                                <a href="{{ url_for('static', filename='uploads/maintenance/' + ticket.image_file) }}"
+                                                    target="_blank" class="badge bg-secondary text-decoration-none">
+                                                    <i class="fa-solid fa-image"></i> รูปก่อนซ่อม
+                                                </a>
+                                            </div>
+                                            {% endif %}
+                                            {% if ticket.image_after %}
+                                            <div class="mt-1">
+                                                <a href="{{ url_for('static', filename='uploads/maintenance/' + ticket.image_after) }}"
+                                                    target="_blank" class="badge bg-success text-decoration-none">
+                                                    <i class="fa-solid fa-image"></i> รูปหลังซ่อม
+                                                </a>
+                                            </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <i class="fa-solid fa-location-dot text-danger"></i> {{ ticket.location
+                                            }}<br>
+                                            <small><i class="fa-solid fa-phone"></i> {{ ticket.contact_number }}</small>
+                                            {% if ticket.scheduled_date %}
+                                            <br><small class="text-primary"><i class="fa-solid fa-calendar-check"></i>
+                                                นัดซ่อม: {{ ticket.scheduled_date.strftime('%d/%m/%Y') }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if ticket.urgency == 'ด่วนมาก' %}
+                                            <span class="badge bg-danger">ด่วนมาก</span>
+                                            {% elif ticket.urgency == 'ด่วน' %}
+                                            <span class="badge bg-warning text-dark">ด่วน</span>
+                                            {% else %}
+                                            <span class="badge bg-success">ปกติ</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if ticket.status == 'pending' %}
+                                            <span class="badge bg-secondary">รอช่างรับงาน</span>
+                                            {% elif ticket.status == 'in_progress' %}
+                                            <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
+                                            {% else %}
+                                            <span class="badge bg-success">เรียบร้อย</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- Column จัดการ — แก้ไข / ลบ -->
+                                        <td class="text-center">
+                                            {% if ticket.status != 'done' %}
+                                            {% if ticket.user_id == current_user.id or current_user.role_maintenance ==
+                                            'admin' or current_user.is_superadmin %}
+                                            <a href="/maintenance/edit/{{ ticket.id }}"
+                                                class="btn btn-sm btn-outline-warning text-dark" title="แก้ไข">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </a>
+                                            <form action="/maintenance/delete/{{ ticket.id }}" method="POST"
+                                                class="d-inline"
+                                                onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% else %}
+                                            <i class="fa-solid fa-lock text-muted"></i> <span class="text-muted"
+                                                style="font-size: 0.8rem;">NOT YOUR RECORD</span>
+                                            {% endif %}
+                                            {% else %}
+                                            <i class="fa-regular fa-thumbs-up text-success"></i> <span
+                                                class="text-success">ปิดงานแล้ว</span>
+                                            {% endif %}
+                                        </td>
+
+                                        <!-- 🆕 Column ผลการซ่อม — เห็นเฉพาะ Admin -->
+                                        {% if current_user.role_maintenance == 'admin' or current_user.is_superadmin %}
+                                        <td>
+                                            {% if ticket.resolved_note %}
+                                            <span class="resolved-note-cell text-success small d-block"
+                                                data-bs-toggle="tooltip" data-bs-placement="top"
+                                                title="{{ ticket.resolved_note }}">
+                                                <i class="fa-solid fa-circle-check me-1"></i>{{ ticket.resolved_note }}
+                                            </span>
+                                            {% if ticket.technician_type %}
+                                            <span
+                                                class="badge {% if ticket.technician_type == 'ช่างนอก' %}bg-warning text-dark{% else %}bg-primary{% endif %} mt-1">
+                                                {{ ticket.technician_type }}
+                                            </span>
+                                            {% endif %}
+                                            {% if ticket.repair_cost %}
+                                            <br><small class="text-danger fw-bold">{{
+                                                "{:,.0f}".format(ticket.repair_cost) }} ฿</small>
+                                            {% endif %}
+                                            {% if ticket.resolved_at %}
+                                            <br><small class="text-muted">{{ ticket.resolved_at.strftime('%Y-%m-%d
+                                                %H:%M') }}</small>
+                                            {% endif %}
+                                            {% else %}
+                                            <span class="text-muted small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+
+                                        <!-- Column ดำเนินการ — เฉพาะ Admin -->
+                                        {% if current_user.role_maintenance == 'admin' or current_user.is_superadmin %}
+                                        <td class="text-center">
+                                            {% if ticket.status == 'pending' %}
+                                            <button type="button" class="btn btn-sm btn-info text-dark fw-bold"
+                                                data-bs-toggle="modal" data-bs-target="#acceptModal"
+                                                data-ticket-id="{{ ticket.id }}"
+                                                data-ticket-subject="{{ ticket.subject }}">
+                                                <i class="fa-solid fa-hammer me-1"></i> รับงาน
+                                            </button>
+
+                                            {% elif ticket.status == 'in_progress' %}
+                                            <button type="button" class="btn btn-sm btn-success fw-bold"
+                                                data-bs-toggle="modal" data-bs-target="#closeModal"
+                                                data-ticket-id="{{ ticket.id }}"
+                                                data-ticket-subject="{{ ticket.subject }}">
+                                                <i class="fa-solid fa-circle-check me-1"></i> ปิดงาน
+                                            </button>
+
+                                            {% else %}
+                                            <span class="text-success small">
+                                                <i class="fa-solid fa-check-circle me-1"></i>ปิดงานแล้ว
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================== MODALS ===================== -->
+
+    <!-- 🆕 Modal: รับงาน + กำหนดวันนัดซ่อม -->
+    <div class="modal fade" id="acceptModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:15px;">
+                <div class="modal-header bg-info text-dark" style="border-radius:15px 15px 0 0;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-hammer me-2"></i> รับงานแจ้งซ่อม
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="acceptForm" method="POST">
+                    <input type="hidden" name="action" value="accept">
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            <i class="fa-solid fa-hashtag me-1"></i>
+                            <span id="acceptTicketInfo" class="fw-bold"></span>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">กำหนดวันนัดซ่อม <span
+                                    class="text-muted fw-normal">(ไม่บังคับ)</span></label>
+                            <input type="date" class="form-control" name="scheduled_date">
+                            <div class="form-text text-muted">ผู้แจ้งจะเห็นวันที่นัดซ่อมในตาราง</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-xmark me-1"></i> ยกเลิก
+                        </button>
+                        <button type="submit" class="btn btn-info fw-bold text-dark">
+                            <i class="fa-solid fa-hammer me-1"></i> ยืนยันรับงาน
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 Modal: ปิดงาน + บันทึกผลการซ่อม -->
+    <div class="modal fade" id="closeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content" style="border-radius:15px;">
+                <div class="modal-header bg-success text-white" style="border-radius:15px 15px 0 0;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-circle-check me-2"></i> ปิดงานแจ้งซ่อม
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="closeForm" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="close">
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            <i class="fa-solid fa-hashtag me-1"></i>
+                            <span id="closeTicketInfo" class="fw-bold"></span>
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">บันทึกผลการซ่อม <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="resolved_note" rows="3"
+                                placeholder="เช่น เปลี่ยนหลอดไฟ LED, อุดรอยรั่ว, ล้างแอร์..." required
+                                style="border-radius:10px;"></textarea>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">ประเภทช่าง <span class="text-danger">*</span></label>
+                                <select class="form-select" name="technician_type" required>
+                                    <option value="" disabled selected>-- เลือก --</option>
+                                    <option value="ช่างใน">🏢 ช่างใน (ทีมภายใน)</option>
+                                    <option value="ช่างนอก">🔧 ช่างนอก (จ้างภายนอก)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">ค่าใช้จ่าย <span
+                                        class="text-muted fw-normal">(ถ้ามี)</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="repair_cost" placeholder="0.00"
+                                        min="0" step="0.01" style="border-radius:10px 0 0 10px;">
+                                    <span class="input-group-text">บาท</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="form-label fw-bold"><i class="fa-solid fa-camera me-1"></i> รูปภาพหลังซ่อม
+                                <span class="text-muted fw-normal">(ถ้ามี)</span></label>
+                            <input class="form-control" type="file" name="image_after" accept="image/*"
+                                style="border-radius:10px;">
+                            <div class="form-text text-muted">แนบรูปเพื่อเป็นหลักฐานว่าซ่อมเสร็จเรียบร้อย</div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-xmark me-1"></i> ยกเลิก
+                        </button>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="fa-solid fa-circle-check me-1"></i> ยืนยันปิดงาน
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🆕 Modal: Export Excel เลือกเดือน -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:15px;">
+                <div class="modal-header bg-success text-white" style="border-radius:15px 15px 0 0;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-file-excel me-2"></i> Export ข้อมูลเป็น Excel
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-bold">เลือกเดือนที่ต้องการ Export</label>
+                    <select class="form-select" id="exportMonthSelect">
+                        <option value="" disabled selected>-- เลือกเดือน --</option>
+                        {% for m in available_months %}
+                        {% set parts = m.split('-') %}
+                        {% set y = parts[0]|int %}
+                        {% set mo = parts[1]|int %}
+                        {% set thai_months = ['',
+                        'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
+                        %}
+                        <option value="{{ m }}">{{ thai_months[mo] }} {{ y + 543 }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text text-muted mt-2">จะ Export ทุกรายการในเดือนที่เลือก
+                        รวมถึงค่าใช้จ่ายและบันทึกการซ่อม</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-success fw-bold" onclick="doExport()">
+                        <i class="fa-solid fa-download me-1"></i> ดาวน์โหลด Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#maintenanceTable').DataTable({
+                responsive: true,
+                language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
+                order: [[0, 'desc']]
+            });
+
+            // Modal: รับงาน
+            document.getElementById('acceptModal').addEventListener('show.bs.modal', function (e) {
+                var btn = e.relatedTarget;
+                document.getElementById('acceptForm').action = '/maintenance/update_status/' + btn.dataset.ticketId;
+                document.getElementById('acceptTicketInfo').textContent = 'รับงาน #' + btn.dataset.ticketId + ' — ' + btn.dataset.ticketSubject;
+                document.querySelector('#acceptModal input[name="scheduled_date"]').value = '';
+            });
+
+            // Modal: ปิดงาน
+            document.getElementById('closeModal').addEventListener('show.bs.modal', function (e) {
+                var btn = e.relatedTarget;
+                document.getElementById('closeForm').action = '/maintenance/update_status/' + btn.dataset.ticketId;
+                document.getElementById('closeTicketInfo').textContent = 'ปิดงาน #' + btn.dataset.ticketId + ' — ' + btn.dataset.ticketSubject;
+                document.querySelector('#closeModal textarea').value = '';
+                document.querySelector('#closeModal input[name="repair_cost"]').value = '';
+                document.querySelector('#closeModal select[name="technician_type"]').selectedIndex = 0;
+            });
+
+            // Tooltip สำหรับ resolved_note ที่ truncate
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                new bootstrap.Tooltip(el);
+            });
+        });
+
+        // Export Excel
+        function doExport() {
+            var month = document.getElementById('exportMonthSelect').value;
+            if (!month) {
+                alert('กรุณาเลือกเดือนก่อนดาวน์โหลด');
+                return;
+            }
+            window.location.href = '/maintenance/export_excel?month=' + month;
+            bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        }
+    </script>
+
+</body>
+
+</html>

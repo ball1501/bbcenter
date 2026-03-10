@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BBCenter</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg:        #F0F2F5;
+            --surface:   #FFFFFF;
+            --border:    #E4E7ED;
+            --text:      #1A1D23;
+            --muted:     #6B7280;
+            --accent:    #2563EB;
+
+            --repair-it:    #EF4444;
+            --repair-build: #F59E0B;
+            --vehicle:      #8B5CF6;
+            --room:         #10B981;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            font-family: 'Sarabun', sans-serif;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        /* ---- Hero greeting ---- */
+        .hero {
+            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 60%, #3B82F6 100%);
+            border-radius: 20px;
+            padding: 32px 36px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            right: -60px; top: -80px;
+            width: 320px; height: 320px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            right: 60px; bottom: -100px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.04);
+        }
+        .hero-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .hero-sub { opacity: .75; font-size: .95rem; }
+
+        /* ---- Alert banner ---- */
+        .alert-banner {
+            background: #FEF3C7;
+            border: 1.5px solid #FCD34D;
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: .9rem;
+        }
+
+        /* ---- Section title ---- */
+        .section-label {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        /* ---- Stat cards ---- */
+        .stat-card {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1.5px solid var(--border);
+            padding: 20px 22px;
+            transition: box-shadow .2s, transform .2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.08);
+        }
+        .stat-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .stat-num {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-label { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+
+        /* ---- Service cards ---- */
+        .svc-card {
+            background: var(--surface);
+            border-radius: 18px;
+            border: 1.5px solid var(--border);
+            padding: 28px 24px;
+            text-align: center;
+            transition: box-shadow .2s, transform .2s;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+        }
+        .svc-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,.1);
+        }
+        .svc-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            border-radius: 18px 18px 0 0;
+        }
+        .svc-card.repair-it::before   { background: var(--repair-it); }
+        .svc-card.repair-build::before { background: var(--repair-build); }
+        .svc-card.vehicle::before     { background: var(--vehicle); }
+        .svc-card.room::before        { background: var(--room); }
+
+        .svc-icon-wrap {
+            width: 64px; height: 64px;
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 1.6rem;
+        }
+        .svc-card .svc-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700; font-size: 1rem;
+            margin-bottom: 6px;
+        }
+        .svc-card .svc-desc {
+            font-size: .82rem; color: var(--muted);
+            line-height: 1.55;
+            margin-bottom: 18px;
+        }
+        .svc-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .75rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+        }
+        .svc-btn {
+            display: block;
+            padding: 9px 0;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: .88rem;
+            text-decoration: none;
+            transition: opacity .15s;
+            border: none;
+        }
+        .svc-btn:hover { opacity: .85; }
+
+        /* ---- Admin panel ---- */
+        .admin-panel {
+            background: #0F172A;
+            border-radius: 18px;
+            padding: 28px;
+            color: #fff;
+        }
+        .admin-panel .panel-title {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+        .admin-stat-row {
+            background: rgba(255,255,255,.06);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,.08);
+            transition: background .15s;
+        }
+        .admin-stat-row:hover { background: rgba(255,255,255,.1); }
+        .admin-stat-row:last-of-type { margin-bottom: 0; }
+        .admin-stat-row .label { font-size: .85rem; color: rgba(255,255,255,.7); }
+        .admin-stat-row .nums { display: flex; gap: 10px; }
+        .admin-num-badge {
+            font-size: .75rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        /* ---- Recent table ---- */
+        .recent-card {
+            background: var(--surface);
+            border-radius: 16px;
+            border: 1.5px solid var(--border);
+            overflow: hidden;
+        }
+        .recent-card .card-head {
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .recent-card .card-head h6 {
+            font-family: 'IBM Plex Sans Thai', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            margin: 0;
+        }
+        .recent-table td, .recent-table th {
+            padding: 11px 22px;
+            font-size: .85rem;
+            vertical-align: middle;
+        }
+        .recent-table th {
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            background: #F8FAFC;
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .recent-table tr:last-child td { border-bottom: none; }
+
+        /* ---- My tickets summary ---- */
+        .my-ticket-card {
+            background: var(--surface);
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: box-shadow .2s;
+        }
+        .my-ticket-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+
+        /* ---- Superadmin card ---- */
+        .superadmin-card {
+            background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%);
+            border-radius: 16px;
+            padding: 22px 26px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: none;
+        }
+
+        /* ---- Hero Logout Button (Glassmorphism) ---- */
+        .hero-logout-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px; /* พื้นที่กดกว้างขวาง กดง่ายบนมือถือ */
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: all 0.2s ease;
+        }
+        .hero-logout-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* ---- Animations ---- */
+        .fade-up {
+            animation: fadeUp .4s ease both;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .delay-1 { animation-delay: .05s; }
+        .delay-2 { animation-delay: .10s; }
+        .delay-3 { animation-delay: .15s; }
+        .delay-4 { animation-delay: .20s; }
+        .delay-5 { animation-delay: .25s; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid px-4 py-4" style="max-width: 1400px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert" style="border-radius:12px;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- ===== Hero ===== -->
+    <div class="hero mb-4 fade-up position-relative" style="z-index: 1;">
+        <div class="row align-items-center position-relative" style="z-index: 2;">
+            <div class="col-12 col-sm">
+                <div class="hero-title">
+                    สวัสดี, {{ current_user.full_name or current_user.username }} 👋
+                </div>
+                <div class="hero-sub">
+                    {{ current_user.department or 'BBCenter' }} &nbsp;·&nbsp;
+                    <span id="live-clock"></span>
+                </div>
+            </div>
+            <div class="col-12 col-sm-auto mt-3 mt-sm-0 text-start text-sm-end">
+                <a href="/logout" class="hero-logout-btn">
+                    <i class="fa-solid fa-right-from-bracket me-2"></i> ออกจากระบบ
+                </a>
+            </div>
+        </div>
+        
+        <i class="fa-solid fa-building fa-4x d-none d-lg-block" 
+           style="position: absolute; right: 30px; bottom: -15px; opacity: 0.1; z-index: 1;"></i>
+    </div>
+
+    <!-- ===== Alert: งานรอดำเนินการ ===== -->
+    {% if stats.total_pending > 0 and (current_user.role_repair == 'admin' or current_user.role_maintenance == 'admin' or current_user.is_superadmin) %}
+    <div class="alert-banner mb-4 fade-up delay-1">
+        <i class="fa-solid fa-bell text-warning fs-5"></i>
+        <span>
+            มีงานรอดำเนินการทั้งหมด
+            <strong>{{ stats.total_pending }} รายการ</strong>
+            &nbsp;(IT ซ่อม: {{ stats.repair_pending }}, อาคาร: {{ stats.maint_pending }}, จองรถ: {{ stats.vehicle_pending }})
+            — กรุณาตรวจสอบรับงานหรืออนุมัติรถ
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- ===== My Tickets (User Section) ===== -->
+    {% if stats.my_repair_open > 0 or stats.my_maint_open > 0 or stats.my_vehicle_pending > 0 %}
+    <div class="mb-4 fade-up delay-1">
+        <div class="section-label">รายการของฉัน</div>
+        <div class="row g-3">
+            {% if stats.my_repair_open > 0 %}
+            <div class="col-md-6 col-lg-4">
+                <a href="/repair" class="text-decoration-none">
+                    <div class="my-ticket-card">
+                        <div class="stat-icon" style="background:#FEE2E2; color:var(--repair-it);">
+                            <i class="fa-solid fa-desktop"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:.9rem;">แจ้งซ่อมไอที</div>
+                            <div class="text-muted" style="font-size:.82rem;">
+                                ยังค้างอยู่ <strong class="text-danger">{{ stats.my_repair_open }}</strong> รายการ
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted ms-auto"></i>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+            {% if stats.my_maint_open > 0 %}
+            <div class="col-md-6 col-lg-4">
+                <a href="/maintenance" class="text-decoration-none">
+                    <div class="my-ticket-card">
+                        <div class="stat-icon" style="background:#FEF3C7; color:var(--repair-build);">
+                            <i class="fa-solid fa-toolbox"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:.9rem;">แจ้งซ่อมอาคาร</div>
+                            <div class="text-muted" style="font-size:.82rem;">
+                                ยังค้างอยู่ <strong class="text-warning">{{ stats.my_maint_open }}</strong> รายการ
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted ms-auto"></i>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+            {% if stats.my_vehicle_pending > 0 %}
+            <div class="col-md-6 col-lg-4">
+                <a href="/vehicle" class="text-decoration-none">
+                    <div class="my-ticket-card">
+                        <div class="stat-icon" style="background:#EDE9FE; color:var(--vehicle);">
+                            <i class="fa-solid fa-van-shuttle"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:.9rem;">จองรถ</div>
+                            <div class="text-muted" style="font-size:.82rem;">
+                                รออนุมัติ <strong class="text-purple" style="color:#7C3AED;">{{ stats.my_vehicle_pending }}</strong> รายการ
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted ms-auto"></i>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+            {% if stats.my_room_today %}
+            <div class="col-md-6 col-lg-4">
+                <a href="/room" class="text-decoration-none">
+                    <div class="my-ticket-card">
+                        <div class="stat-icon" style="background:#D1FAE5; color:var(--room);">
+                            <i class="fa-solid fa-people-roof"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:.9rem;">ห้องประชุมวันนี้</div>
+                            <div class="text-muted" style="font-size:.82rem;">
+                                {% for b in stats.my_room_today %}
+                                <span>{{ b.room_name }} {{ b.start_time.strftime('%H:%M') }}–{{ b.end_time.strftime('%H:%M') }}</span>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted ms-auto"></i>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== Services ===== -->
+    <div class="mb-4 fade-up delay-2">
+        <div class="section-label">บริการทั้งหมด</div>
+        <div class="row g-3">
+
+            <!-- แจ้งซ่อมไอที -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="svc-card repair-it">
+                    <div class="svc-icon-wrap" style="background:#FEE2E2; color:var(--repair-it);">
+                        <i class="fa-solid fa-desktop"></i>
+                    </div>
+                    {% if stats.repair_pending > 0 %}
+                    <span class="svc-badge" style="background:#FEE2E2; color:var(--repair-it);">
+                        <i class="fa-solid fa-circle-dot fa-xs"></i> รอดำเนินการ {{ stats.repair_pending }} รายการ
+                    </span>
+                    {% endif %}
+                    <div class="svc-title">แจ้งซ่อมไอที</div>
+                    <div class="svc-desc">คอมพิวเตอร์ เครือข่าย ปริ้นเตอร์ และซอฟต์แวร์</div>
+                    <a href="/repair" class="svc-btn" style="background:var(--repair-it); color:#fff;">
+                        เข้าสู่ระบบ
+                    </a>
+                </div>
+            </div>
+
+            <!-- แจ้งซ่อมอาคาร -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="svc-card repair-build">
+                    <div class="svc-icon-wrap" style="background:#FEF3C7; color:var(--repair-build);">
+                        <i class="fa-solid fa-toolbox"></i>
+                    </div>
+                    {% if stats.maint_pending > 0 %}
+                    <span class="svc-badge" style="background:#FEF3C7; color:#92400E;">
+                        <i class="fa-solid fa-circle-dot fa-xs"></i> รอดำเนินการ {{ stats.maint_pending }} รายการ
+                    </span>
+                    {% endif %}
+                    <div class="svc-title">แจ้งซ่อมอาคาร</div>
+                    <div class="svc-desc">ไฟฟ้า ประปา แอร์ และสิ่งอำนวยความสะดวก</div>
+                    <a href="/maintenance" class="svc-btn" style="background:var(--repair-build); color:#fff;">
+                        เข้าสู่ระบบ
+                    </a>
+                </div>
+            </div>
+
+            <!-- จองรถ -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="svc-card vehicle">
+                    <div class="svc-icon-wrap" style="background:#EDE9FE; color:var(--vehicle);">
+                        <i class="fa-solid fa-van-shuttle"></i>
+                    </div>
+                    {% if stats.my_vehicle_pending > 0 %}
+                    <span class="svc-badge" style="background:#EDE9FE; color:#5B21B6;">
+                        <i class="fa-solid fa-circle-dot fa-xs"></i> รออนุมัติ {{ stats.my_vehicle_pending }} รายการ
+                    </span>
+                    {% elif stats.vehicle_pending > 0 and (current_user.role_vehicle == 'admin' or current_user.is_superadmin) %}
+                    <span class="svc-badge" style="background:#EDE9FE; color:#5B21B6;">
+                        <i class="fa-solid fa-circle-dot fa-xs"></i> รออนุมัติ {{ stats.vehicle_pending }} รายการ
+                    </span>
+                    {% endif %}
+                    <div class="svc-title">จองรถ</div>
+                    <div class="svc-desc">รถตู้ รถกระบะ ตรวจสอบตารางและอนุมัติคำขอ</div>
+                    <a href="/vehicle" class="svc-btn" style="background:var(--vehicle); color:#fff;">
+                        เข้าสู่ระบบ
+                    </a>
+                </div>
+            </div>
+
+            <!-- จองห้องประชุม -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="svc-card room">
+                    <div class="svc-icon-wrap" style="background:#D1FAE5; color:var(--room);">
+                        <i class="fa-solid fa-people-roof"></i>
+                    </div>
+                    {% if stats.room_today > 0 %}
+                    <span class="svc-badge" style="background:#D1FAE5; color:#065F46;">
+                        <i class="fa-solid fa-circle-dot fa-xs"></i> วันนี้มีจอง {{ stats.room_today }} รายการ
+                    </span>
+                    {% endif %}
+                    <div class="svc-title">จองห้องประชุม</div>
+                    <div class="svc-desc">ดูตารางว่าง จองล่วงหน้า และจัดการอุปกรณ์</div>
+                    <a href="/room" class="svc-btn" style="background:var(--room); color:#fff;">
+                        เข้าสู่ระบบ
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== Admin Panel + Recent (เห็นเฉพาะ admin) ===== -->
+    {% if current_user.role_repair == 'admin' or current_user.role_maintenance == 'admin' or current_user.is_superadmin %}
+    <div class="row g-4 mb-4 fade-up delay-3">
+
+        <!-- Admin Stats -->
+        <div class="col-lg-4">
+            <div class="admin-panel h-100">
+                <div class="panel-title">
+                    <i class="fa-solid fa-shield-halved me-2 text-blue-400" style="color:#60A5FA;"></i>
+                    สรุปภาพรวมระบบ (Admin)
+                </div>
+
+                <!-- IT Repair -->
+                <div class="section-label" style="color:rgba(255,255,255,.4); margin-bottom:8px;">แจ้งซ่อมไอที</div>
+                <div class="admin-stat-row">
+                    <span class="label">รอดำเนินการ</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#FEE2E2; color:#EF4444;">
+                            {{ stats.repair_pending }} รายการ
+                        </span>
+                    </div>
+                </div>
+                <div class="admin-stat-row">
+                    <span class="label">กำลังดำเนินการ</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#DBEAFE; color:#2563EB;">
+                            {{ stats.repair_in_progress }} รายการ
+                        </span>
+                    </div>
+                </div>
+                <div class="admin-stat-row mb-3">
+                    <span class="label">เสร็จสิ้นทั้งหมด</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#D1FAE5; color:#10B981;">
+                            {{ stats.repair_done_total }} รายการ
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Maintenance -->
+                <div class="section-label" style="color:rgba(255,255,255,.4); margin-bottom:8px;">แจ้งซ่อมอาคาร</div>
+                <div class="admin-stat-row">
+                    <span class="label">รอดำเนินการ</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#FEF3C7; color:#F59E0B;">
+                            {{ stats.maint_pending }} รายการ
+                        </span>
+                    </div>
+                </div>
+                <div class="admin-stat-row">
+                    <span class="label">กำลังดำเนินการ</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#DBEAFE; color:#2563EB;">
+                            {{ stats.maint_in_progress }} รายการ
+                        </span>
+                    </div>
+                </div>
+                <div class="admin-stat-row">
+                    <span class="label">เสร็จสิ้นทั้งหมด</span>
+                    <div class="nums">
+                        <span class="admin-num-badge" style="background:#D1FAE5; color:#10B981;">
+                            {{ stats.maint_done_total }} รายการ
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Vehicle -->
+                <div class="section-label" style="color:rgba(255,255,255,.4); margin-bottom:8px;">จองรถ</div>
+                <div class="admin-stat-row">
+                    <span class="label">รออนุมัติ</span>
+                    <span class="admin-num-badge" style="background:#EDE9FE; color:#7C3AED;">
+                        {{ stats.vehicle_pending }} รายการ
+                    </span>
+                </div>
+                <div class="admin-stat-row">
+                    <span class="label">รออนุมัติจากตัวแทนกอง</span>
+                    <span class="admin-num-badge" style="background:#EDE9FE; color:#7C3AED;">
+                        {{ stats.vehicle_waiting_approver }} รายการ
+                    </span>
+                </div>
+                <div class="admin-stat-row mb-3">
+                    <span class="label">อนุมัติแล้ว</span>
+                    <span class="admin-num-badge" style="background:#D1FAE5; color:#10B981;">
+                        {{ stats.vehicle_approved }} รายการ
+                    </span>
+                </div>
+
+                <div class="mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,.1);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-people-roof" style="color:#34D399;"></i>
+                        <span style="color:rgba(255,255,255,.7); font-size:.85rem;">จองห้องประชุมวันนี้</span>
+                        <span class="ms-auto fw-bold">{{ stats.room_today }} รายการ</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-users" style="color:#60A5FA;"></i>
+                        <span style="color:rgba(255,255,255,.7); font-size:.85rem;">ผู้ใช้งานในระบบ</span>
+                        <span class="ms-auto fw-bold">{{ stats.user_count }} คน</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Tickets -->
+        <div class="col-lg-8">
+            <!-- IT Recent -->
+            <div class="recent-card mb-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-desktop me-2 text-danger"></i> รายการแจ้งซ่อมไอทีล่าสุด</h6>
+                    <a href="/repair" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้แจ้ง</th>
+                            <th>หัวข้อ</th>
+                            <th>ความเร่งด่วน</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in recent_repair %}
+                        <tr>
+                            <td class="text-muted">#{{ t.id }}</td>
+                            <td>{{ t.user.full_name or t.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                <small class="text-muted">{{ t.category }}</small>
+                            </td>
+                            <td>
+                                {% if t.urgency == 'ด่วนมาก' %}
+                                    <span class="badge bg-danger">ด่วนมาก</span>
+                                {% elif t.urgency == 'ด่วน' %}
+                                    <span class="badge bg-warning text-dark">ด่วน</span>
+                                {% else %}
+                                    <span class="badge bg-success">ปกติ</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.status == 'pending' %}
+                                    <span class="badge bg-secondary">รอดำเนินการ</span>
+                                {% elif t.status == 'in_progress' %}
+                                    <span class="badge bg-info text-dark">กำลังซ่อม</span>
+                                {% else %}
+                                    <span class="badge bg-success">เสร็จสิ้น</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Maintenance Recent -->
+            <div class="recent-card">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-toolbox me-2 text-warning"></i> รายการแจ้งซ่อมอาคารล่าสุด</h6>
+                    <a href="/maintenance" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้แจ้ง</th>
+                            <th>หัวข้อ</th>
+                            <th>ความเร่งด่วน</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in recent_maint %}
+                        <tr>
+                            <td class="text-muted">#{{ t.id }}</td>
+                            <td>{{ t.user.full_name or t.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                <small class="text-muted">{{ t.category }}</small>
+                            </td>
+                            <td>
+                                {% if t.urgency == 'ด่วนมาก' %}
+                                    <span class="badge bg-danger">ด่วนมาก</span>
+                                {% elif t.urgency == 'ด่วน' %}
+                                    <span class="badge bg-warning text-dark">ด่วน</span>
+                                {% else %}
+                                    <span class="badge bg-success">ปกติ</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.status == 'pending' %}
+                                    <span class="badge bg-secondary">รอช่างรับงาน</span>
+                                {% elif t.status == 'in_progress' %}
+                                    <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
+                                {% else %}
+                                    <span class="badge bg-success">เรียบร้อย</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Vehicle Recent -->
+            <div class="recent-card mt-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-car me-2 text-primary"></i> การจองรถวันนี้</h6>
+                    <a href="/vehicle" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้จอง</th>
+                            <th>สถานที่ปลายทาง</th>
+                            <th>ระยะเวลา</th>
+                            <!-- <th>สิ้นสุด</th> -->
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in recent_vehicle %}
+                        <tr>
+                            <td class="text-muted">#{{ v.id }}</td>
+                            <td>{{ v.user.full_name or v.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ v.destination }}</span><br>
+                                <small class="text-muted">{{ v.purpose }}</small>
+                            </td>
+                            <td>
+                                <span style="font-size:.85rem;">
+                                    {{ v.start_datetime.strftime('%d/%m/%Y') }}
+                                </span><br>
+                                <small class="text-muted">
+                                    {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if v.status == 'pending' %}
+                                    <span class="badge bg-secondary">รออนุมัติ</span>
+                                {% elif v.status == 'approved' %}
+                                    <span class="badge bg-success">อนุมัติแล้ว</span>
+                                {% elif v.status == 'waiting_approver' %}
+                                    <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
+                                {% else %}
+                                    <span class="badge bg-danger">ไม่อนุมัติ</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Room Recent -->
+            <div class="recent-card mt-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-people-roof me-2 text-success"></i> การจองห้องประชุมวันนี้</h6>
+                    <a href="/room" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ห้อง</th>
+                            <th>หัวข้อ</th>
+                            <th>ผู้จอง</th>
+                            <th>เวลาเริ่ม</th>
+                            <th>สิ้นสุด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in recent_room %}
+                        <tr>
+                            <td>
+                                {% if 'เล็ก' in b.room_name %}
+                                <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
+                                {% else %}
+                                <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ b.title }}</td>
+                            <td>{{ b.user.full_name or b.user.username }}</td>
+                            <td>{{ b.start_time.strftime('%H:%M') }}</td>
+                            <td>{{ b.end_time.strftime('%H:%M') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    {% else %}
+    <!-- list for normal user -->
+    <div class="row g-4 mb-4 fade-up delay-3">
+
+        <!-- Recent Tickets -->
+        <div class="col-lg-12">
+            <!-- IT Recent -->
+            <div class="recent-card mb-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-desktop me-2 text-danger"></i> รายการแจ้งซ่อมไอทีล่าสุด</h6>
+                    <a href="/repair" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้แจ้ง</th>
+                            <th>หัวข้อ</th>
+                            <th>ความเร่งด่วน</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in recent_repair %}
+                        <tr>
+                            <td class="text-muted">#{{ t.id }}</td>
+                            <td>{{ t.user.full_name or t.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                <small class="text-muted">{{ t.category }}</small>
+                            </td>
+                            <td>
+                                {% if t.urgency == 'ด่วนมาก' %}
+                                    <span class="badge bg-danger">ด่วนมาก</span>
+                                {% elif t.urgency == 'ด่วน' %}
+                                    <span class="badge bg-warning text-dark">ด่วน</span>
+                                {% else %}
+                                    <span class="badge bg-success">ปกติ</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.status == 'pending' %}
+                                    <span class="badge bg-secondary">รอดำเนินการ</span>
+                                {% elif t.status == 'in_progress' %}
+                                    <span class="badge bg-info text-dark">กำลังซ่อม</span>
+                                {% else %}
+                                    <span class="badge bg-success">เสร็จสิ้น</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Maintenance Recent -->
+            <div class="recent-card">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-toolbox me-2 text-warning"></i> รายการแจ้งซ่อมอาคารล่าสุด</h6>
+                    <a href="/maintenance" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้แจ้ง</th>
+                            <th>หัวข้อ</th>
+                            <th>ความเร่งด่วน</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in recent_maint %}
+                        <tr>
+                            <td class="text-muted">#{{ t.id }}</td>
+                            <td>{{ t.user.full_name or t.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                <small class="text-muted">{{ t.category }}</small>
+                            </td>
+                            <td>
+                                {% if t.urgency == 'ด่วนมาก' %}
+                                    <span class="badge bg-danger">ด่วนมาก</span>
+                                {% elif t.urgency == 'ด่วน' %}
+                                    <span class="badge bg-warning text-dark">ด่วน</span>
+                                {% else %}
+                                    <span class="badge bg-success">ปกติ</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if t.status == 'pending' %}
+                                    <span class="badge bg-secondary">รอช่างรับงาน</span>
+                                {% elif t.status == 'in_progress' %}
+                                    <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
+                                {% else %}
+                                    <span class="badge bg-success">เรียบร้อย</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Room Recent -->
+            <div class="recent-card mt-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-people-roof me-2 text-success"></i> การจองห้องประชุมวันนี้</h6>
+                    <a href="/room" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ห้อง</th>
+                            <th>หัวข้อ</th>
+                            <th>ผู้จอง</th>
+                            <th>เวลาเริ่ม</th>
+                            <th>สิ้นสุด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in recent_room %}
+                        <tr>
+                            <td>
+                                {% if 'เล็ก' in b.room_name %}
+                                <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
+                                {% else %}
+                                <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ b.title }}</td>
+                            <td>{{ b.user.full_name or b.user.username }}</td>
+                            <td>{{ b.start_time.strftime('%H:%M') }}</td>
+                            <td>{{ b.end_time.strftime('%H:%M') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    
+
+    <!-- ===== Superadmin Card ===== -->
+    {% if current_user.is_superadmin %}
+    <div class="fade-up delay-4">
+        <div class="superadmin-card">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:48px;height:48px;border-radius:14px;background:rgba(96,165,250,.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-user-shield fa-lg" style="color:#60A5FA;"></i>
+                </div>
+                <div>
+                    <div style="font-family:'IBM Plex Sans Thai',sans-serif;font-weight:700;font-size:1rem;">
+                        Super Admin Panel
+                    </div>
+                    <div style="font-size:.82rem;color:rgba(255,255,255,.6);">
+                        จัดการสิทธิ์ผู้ใช้งานและระบบทั้งหมด
+                    </div>
+                </div>
+            </div>
+            <a href="/manage_users" class="btn btn-primary px-4 fw-bold">
+                <i class="fa-solid fa-cog me-2"></i> จัดการผู้ใช้งาน
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    // Live clock
+    function updateClock() {
+        const now = new Date();
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateStr = now.toLocaleDateString('th-TH', opts);
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        const el = document.getElementById('live-clock');
+        if (el) el.textContent = dateStr + ' · ' + timeStr;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Database
+app/instance/*.db
+
+# Environment variables (สำคัญมาก!)
+.env
+
+# macOS
+.DS_Store

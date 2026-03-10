@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดการจองรถ</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+{% include 'navbar.html' %}
+
+<div class="container mt-4 mb-5" style="max-width: 800px;">
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" style="border-radius: 10px;">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-dark"><i class="fa-solid fa-file-lines me-2"></i> รายละเอียดการจอง #{{ booking.id }}</h4>
+        <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm shadow-sm"><i class="fa-solid fa-arrow-left me-1"></i> ย้อนกลับ</a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px;">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
+            <h6 class="mb-0 fw-bold text-primary"><i class="fa-solid fa-car-side me-2"></i> ข้อมูลรถและผู้จอง</h6>
+            
+            {% if booking.status == 'pending' %}
+                <span class="badge bg-warning text-dark px-3 py-2 fs-6"><i class="fa-regular fa-clock me-1"></i> รออนุมัติ</span>
+            {% elif booking.status == 'approved' %}
+                <span class="badge bg-success px-3 py-2 fs-6"><i class="fa-solid fa-check me-1"></i> อนุมัติแล้ว</span>
+            {% elif booking.status == 'rejected' %}
+                <span class="badge bg-danger px-3 py-2 fs-6"><i class="fa-solid fa-xmark me-1"></i> ไม่อนุมัติ</span>
+            {% endif %}
+        </div>
+        
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <small class="text-muted d-block">ผู้จอง</small>
+                    <strong class="fs-5"><i class="fa-regular fa-user text-primary me-1"></i> {{ booking.user.full_name or booking.user.username }}</strong>
+                </div>
+                <div class="col-12 col-md-6">
+                    <small class="text-muted d-block">รถที่ใช้เดินทาง</small>
+                    <strong class="fs-5">{{ booking.assigned_vehicle.brand if booking.assigned_vehicle else "ยังไม่กำหนด" }} {{ booking.assigned_vehicle.model if booking.assigned_vehicle else "" }} ({{ booking.assigned_vehicle.license_plate if booking.assigned_vehicle else "-" }})</strong>
+                </div>
+                
+                <hr class="my-3 text-muted">
+                
+                <div class="col-12 col-md-6">
+                    <small class="text-muted d-block">เวลาออกเดินทาง (ไป)</small>
+                    <strong><i class="fa-regular fa-calendar me-1"></i> {{ booking.start_datetime.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-12 col-md-6">
+                    <small class="text-muted d-block">เวลากลับถึงบางบาล (กลับ)</small>
+                    <strong><i class="fa-regular fa-calendar-check me-1"></i> {{ booking.end_datetime.strftime('%d/%m/%Y %H:%M') }}</strong>
+                </div>
+                <div class="col-12">
+                    <small class="text-muted d-block">ปลายทาง</small>
+                    <strong class="text-danger fs-5"><i class="fa-solid fa-location-dot me-1"></i> {{ booking.destination }}</strong>
+                </div>
+                <div class="col-12">
+                    <small class="text-muted d-block">วัตถุประสงค์</small>
+                    <strong>{{ booking.purpose }}</strong>
+                </div>
+                
+                <div class="col-12 mt-3 p-3 bg-light rounded-3 border">
+                    <div class="row text-center">
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block">คนขับรถ</small>
+                            <strong>{% if booking.need_driver %}ต้องการ 🧑‍✈️{% else %}ขับเอง 🚗{% endif %}</strong>
+                        </div>
+                        <div class="col-4 border-end">
+                            <small class="text-muted d-block">แชร์รถ (Join)</small>
+                            <strong>{% if booking.allow_join %}<span class="text-success">อนุญาต ✅</span>{% else %}<span class="text-danger">ไม่อนุญาต ❌</span>{% endif %}</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">ผู้โดยสารหลัก</small>
+                            <strong>{{ booking.passenger_count }} คน</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.role_vehicle == 'approver' and current_user.department == booking.user.department %}
+        <div class="card shadow-sm border-warning mb-4" style="border-radius: 15px;">
+            <div class="card-header bg-warning text-dark py-3" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
+                <h6 class="mb-0 fw-bold"><i class="fa-solid fa-user-shield me-2"></i> ส่วนจัดการสำหรับผู้อนุมัติ</h6>
+            </div>
+            <div class="card-body p-4 text-center">
+
+                {% if booking.status == 'waiting_approver' %}
+                    <p class="text-primary mb-3 fw-bold">รายการนี้รอการอนุมัติยืนยันจากคุณ (แผนก {{ booking.user.department }})</p>
+                    <form action="/vehicle/approve/{{ booking.id }}" method="POST" class="d-grid gap-2 d-md-block">
+                        <button type="submit" name="action" value="approve" class="btn btn-success btn-lg px-5 mx-2 fw-bold" onclick="return confirm('ยืนยันอนุมัติให้พนักงานเดินทาง?');">
+                            <i class="fa-solid fa-check"></i> อนุมัติให้เดินทาง
+                        </button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger btn-lg px-5 mx-2 fw-bold" onclick="return confirm('ปฏิเสธการเดินทางนี้?');">
+                            <i class="fa-solid fa-xmark"></i> ไม่อนุมัติ
+                        </button>
+                    </form>
+
+                {% elif booking.status == 'approved' %}
+                    <h5 class="mb-0 text-success"><i class="fa-solid fa-circle-check me-2"></i> อนุมัติเรียบร้อยแล้ว</h5>
+
+                {% elif booking.status == 'rejected' %}
+                    <h5 class="mb-0 text-danger"><i class="fa-solid fa-circle-xmark me-2"></i> ไม่อนุมัติรายการนี้แล้ว</h5>
+
+                {% else %}
+                    <h5 class="mb-0 text-muted"><i class="fa-solid fa-hourglass-half me-2"></i> รอ Admin ดำเนินการก่อน</h5>
+                {% endif %}
+
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
