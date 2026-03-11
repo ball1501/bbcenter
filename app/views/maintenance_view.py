@@ -88,13 +88,13 @@ def index():
     )
 
 
-# 🟢 Route แก้ไข — เฉพาะเจ้าของ หรือ admin, เฉพาะ status pending
+# 🟢 Route แก้ไข — เฉพาะเจ้าของ, เฉพาะ status pending
 @maintenance_bp.route('/maintenance/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit(id):
     ticket = MaintenanceTicket.query.get_or_404(id)
 
-    if ticket.user_id != current_user.id and not is_maintenance_admin():
+    if ticket.user_id != current_user.id:
         flash('คุณไม่มีสิทธิ์แก้ไขรายการนี้', 'danger')
         return redirect(url_for('maintenance.index'))
 
@@ -120,7 +120,7 @@ def edit(id):
 def delete(id):
     ticket = MaintenanceTicket.query.get_or_404(id)
 
-    if ticket.user_id != current_user.id and not is_maintenance_admin():
+    if ticket.user_id != current_user.id:
         flash('คุณไม่มีสิทธิ์ลบรายการนี้', 'danger')
         return redirect(url_for('maintenance.index'))
 

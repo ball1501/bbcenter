@@ -236,10 +236,10 @@
                                 <th>ความเร่งด่วน</th>
                                 <th>สถานะ</th>
                                 <th>บันทึกการซ่อม</th>
-                                    <th>จัดการ</th>
-                                    {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
-                                    <th>for Admin</th>
-                                    {% endif %}
+                                <th>จัดการ</th>
+                                {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+                                <th>for Admin</th>
+                                {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -301,7 +301,7 @@
                                     <td>
                                         <!-- ปุ่มแก้ไข / ลบ — เห็นเฉพาะเจ้าของ หรือ Admin -->
                                         {% if ticket.status == 'pending' %}
-                                            {% if ticket.user_id == current_user.id or current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
+                                            {% if ticket.user_id == current_user.id %}
                                                 <a href="/repair/edit/{{ ticket.id }}" class="btn btn-sm btn-outline-warning text-dark mb-1">
                                                     <i class="fa-solid fa-pen"></i>
                                                 </a>
@@ -311,6 +311,9 @@
                                                         <i class="fa-solid fa-trash"></i>
                                                     </button>
                                                 </form>
+                                            {% else %}
+                                            <i class="fa-solid fa-lock text-muted"></i> <span class="text-muted"
+                                                style="font-size: 0.8rem;">NOT YOUR RECORD</span>
                                             {% endif %}
 
                                         {% elif ticket.status == 'in_progress' %}
@@ -323,7 +326,7 @@
 
                                     </td>
 
-                                    <!-- ปุ่มจัดการ -->
+                                    <!-- ปุ่มรับงาน -->
                                     <td>
                                     {% if ticket.status != 'done' %}
                                         {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}

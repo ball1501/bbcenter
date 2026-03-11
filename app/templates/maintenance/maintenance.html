@@ -343,8 +343,7 @@
                                         <!-- Column จัดการ — แก้ไข / ลบ -->
                                         <td class="text-center">
                                             {% if ticket.status != 'done' %}
-                                            {% if ticket.user_id == current_user.id or current_user.role_maintenance ==
-                                            'admin' or current_user.is_superadmin %}
+                                            {% if ticket.user_id == current_user.id %}
                                             <a href="/maintenance/edit/{{ ticket.id }}"
                                                 class="btn btn-sm btn-outline-warning text-dark" title="แก้ไข">
                                                 <i class="fa-solid fa-pen"></i>
