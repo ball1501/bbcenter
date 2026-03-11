@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_required, current_user
-from models import db, Vehicle, VehicleBooking, Driver, VehicleMileage
+from models import db, Vehicle, VehicleBooking, Driver, VehicleMileage, SystemConfig
 from sqlalchemy import and_, extract
 from datetime import datetime, date
 from views.telegram_service import (notify_approved, notify_forwarded_to_approver, notify_approver_approved, notify_rejected)
@@ -253,7 +253,8 @@ def manage_fleet():
                 brand         = request.form.get('brand'),
                 model         = request.form.get('model'),
                 license_plate = request.form.get('license_plate'),
-                capacity      = int(request.form.get('capacity'))
+                capacity      = int(request.form.get('capacity')),
+                fuel_rate     = float(request.form.get('fuel_rate') or 10)
             )
             db.session.add(new_vehicle)
             db.session.commit()
@@ -276,6 +277,9 @@ def manage_fleet():
             vehicle.license_plate = request.form.get('license_plate')
             vehicle.capacity      = int(request.form.get('capacity'))
             vehicle.status        = request.form.get('status', 'active')
+            fuel_rate_str = request.form.get('fuel_rate', '').strip()
+            if fuel_rate_str:
+                vehicle.fuel_rate = float(fuel_rate_str)
             db.session.commit()
             flash(f"อัปเดตข้อมูลรถ {vehicle.brand} {vehicle.model} สำเร็จ!", 'success')
 
@@ -533,12 +537,23 @@ def calc_ot(booking, mileage):
     return round(ot_hours * OT_RATE, 2)
 
 
-@admincost_bp.route('/admin/cost')
+@admincost_bp.route('/admin/cost', methods=['GET', 'POST'])
 @login_required
 def cost_summary():
     if not is_vehicle_admin():
         flash('คุณไม่มีสิทธิ์เข้าหน้านี้', 'danger')
         return redirect(url_for('vehicle.index'))
+
+    # บันทึกราคาน้ำมัน
+    if request.method == 'POST' and request.form.get('action') == 'save_fuel_price':
+        new_price = request.form.get('fuel_price', '').strip()
+        if new_price:
+            SystemConfig.set('fuel_price', new_price)
+            flash(f'อัปเดตราคาน้ำมันเป็น {new_price} บาท/ลิตร แล้ว', 'success')
+        return redirect(url_for('admincost.cost_summary'))
+
+    # ราคาน้ำมันปัจจุบัน
+    fuel_price = float(SystemConfig.get('fuel_price', '40'))
 
     # filter เดือน/ปี
     now         = datetime.now()
@@ -562,7 +577,13 @@ def cost_summary():
     for b in bookings:
         m        = b.mileage[0] if b.mileage else None
         distance = (m.odometer_end - m.odometer_start) if (m and m.odometer_end and m.odometer_start) else None
-        fuel     = m.fuel_cost if m else 0
+
+        # คำนวณค่าน้ำมันอัตโนมัติจาก fuel_rate ของรถ
+        if distance and b.assigned_vehicle and b.assigned_vehicle.fuel_rate:
+            fuel = round((distance / b.assigned_vehicle.fuel_rate) * fuel_price, 2)
+        else:
+            fuel = m.fuel_cost if m else 0
+
         ot       = calc_ot(b, m)
         total    = (fuel or 0) + ot
         exp      = b.expense_type or 'unknown'
@@ -586,4 +607,5 @@ def cost_summary():
                            sel_year=sel_year, sel_month=sel_month,
                            sel_expense=sel_expense,
                            month_label=month_label,
+                           fuel_price=fuel_price,
                            now=now)

@@ -103,6 +103,7 @@ class Vehicle(db.Model):
     license_plate = db.Column(db.String(20), unique=True, nullable=False) # ทะเบียนรถ (ห้ามซ้ำ)
     capacity = db.Column(db.Integer, nullable=False)       # จำนวนที่นั่งสูงสุด
     status = db.Column(db.String(20), default='active')    # สถานะ: active (พร้อมใช้งาน), maintenance (ซ่อมบำรุง)
+    fuel_rate = db.Column(db.Float, default=10.0)          # อัตราสิ้นเปลือง กม./ลิตร
 
 
 # ==========================================
@@ -190,3 +191,26 @@ class VehicleMileage(db.Model):
 
     booking          = db.relationship('VehicleBooking', backref='mileage')
     noter            = db.relationship('User', foreign_keys=[noted_by])
+
+
+# ==========================================
+# 8. ตาราง SystemConfig (ค่า config กลาง)
+# ==========================================
+class SystemConfig(db.Model):
+    __tablename__ = 'system_config'
+    key   = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(100), nullable=False)
+
+    @staticmethod
+    def get(key, default=None):
+        row = SystemConfig.query.get(key)
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = SystemConfig.query.get(key)
+        if row:
+            row.value = str(value)
+        else:
+            db.session.add(SystemConfig(key=key, value=str(value)))
+        db.session.commit()
