@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'default_super_secret_key')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{BASE_DIR}/instance/portal.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=7)  # จำ 7 วัน
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)  # หมดใน 8 ชั่วโมง
 
 # ผูก Database เข้ากับแอป
 db.init_app(app)
@@ -61,23 +61,6 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('auth.dashboard'))  # ✅ login แล้ว → ไป dashboard
     return redirect(url_for('auth.login'))           # ยังไม่ login → ไปหน้า login
-
-# 🛠️ Route ชั่วคราวสำหรับสร้างข้อมูลรถจำลอง (รันเสร็จแล้วลบทิ้งได้เลย)
-@app.route('/mock-vehicles')
-def mock_vehicles():
-    # เช็คก่อนว่ามีรถในระบบหรือยัง จะได้ไม่สร้างซ้ำ
-    if Vehicle.query.count() == 0:
-        v1 = Vehicle(brand='TOYOTA', model='All New Commuter (รถตู้)', license_plate='1นจ9208', capacity=10)
-        v2 = Vehicle(brand='TOYOTA', model='Hiace (รถตู้)', license_plate='ฮฉ 5064', capacity=10)
-        v3 = Vehicle(brand='TOYOTA', model='Hiace (รถตู้ครัว)', license_plate='ฮข 3858', capacity=1)
-        v4 = Vehicle(brand='ISUZU', model='D-MAX (รถกระบะ)', license_plate='ศม 139', capacity=4)
-        v5 = Vehicle(brand='TOYOTA', model='VIGO (รถกระบะ)', license_plate='กร 7922', capacity=4)
-        v6 = Vehicle(brand='FORD', model='RANGER (รถกระบะ)', license_plate='3ขข632', capacity=4)
-        
-        db.session.add_all([v1, v2, v3, v4, v5, v6])
-        db.session.commit()
-        return "เพิ่มข้อมูลรถจำลองสำเร็จ! <a href='/vehicle'>ไปหน้าระบบจองรถ</a>"
-    return "มีข้อมูลรถในระบบอยู่แล้วครับ <a href='/vehicle'>ไปหน้าระบบจองรถ</a>"
 
 if __name__ == '__main__':
     with app.app_context():

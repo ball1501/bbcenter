@@ -28,7 +28,9 @@ def login():
                 db.session.add(user)
                 db.session.commit()
 
-            login_user(user)
+            session.permanent = True        # ← เพิ่มตรงนี้
+            login_user(user, remember=True) # ← แก้ตรงนี้
+
             return redirect(url_for('auth.dashboard'))
         else:
             flash("User หรือ Password ไม่ถูกต้อง!", "danger")
