@@ -1,5 +1,5 @@
 # views/auth_view.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User, RepairTicket, MaintenanceTicket, RoomBooking, VehicleBooking
 from ad_utils import check_ad_login
