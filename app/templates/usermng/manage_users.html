@@ -8,6 +8,7 @@
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendor/datatables/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
 </head>
 <body class="bg-light">
 
@@ -35,6 +36,7 @@
                 <table id="userTable" class="table table-hover table-bordered align-middle w-100">
                     <thead class="table-primary">
                         <tr>
+                            <th>ลำดับ</th>
                             <th>Username</th>
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน</th>
@@ -49,6 +51,7 @@
                     <tbody>
                         {% for user in users %}
                         <tr>
+                            <td data-order="{{ user.id }}">{{ user.id }}</td>
                             <td>{{ user.username }}</td>
                             <td>{{ user.full_name or '-' }}</td>
                             <td>
@@ -116,22 +119,17 @@
 
 <script src="{{url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js')}}"></script>
 <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-
 <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.responsive.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/js/responsive.bootstrap5.min.js') }}"></script>
 
 <script>
     $(document).ready(function() {
         $('#userTable').DataTable({
-            // การดึงไฟล์ภาษาไทยของ DataTables
-            language: {
-                // url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/th.json" 
-                url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" 
-            },
-            // ปิดการเรียงลำดับที่คอลัมน์ "จัดการ" (index ที่ 6)
-            columnDefs: [
-                { orderable: false, targets: 6 }
-            ]
+            responsive: true,
+            language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
+            order: [[0, 'desc']]
         });
     });
 </script>
