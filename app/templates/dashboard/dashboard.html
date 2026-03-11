@@ -960,6 +960,62 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Vehicle Recent -->
+            <div class="recent-card mt-3">
+                <div class="card-head">
+                    <h6><i class="fa-solid fa-car me-2 text-primary"></i> การจองรถวันนี้</h6>
+                    <a href="/vehicle" class="text-decoration-none text-muted" style="font-size:.82rem;">
+                        ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
+                    </a>
+                </div>
+                <table class="table recent-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ผู้จอง</th>
+                            <th>สถานที่ปลายทาง</th>
+                            <th>ระยะเวลา</th>
+                            <!-- <th>สิ้นสุด</th> -->
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in recent_vehicle %}
+                        <tr>
+                            <td class="text-muted">#{{ v.id }}</td>
+                            <td>{{ v.user.full_name or v.user.username }}</td>
+                            <td>
+                                <span style="font-size:.85rem;">{{ v.destination }}</span><br>
+                                <small class="text-muted">{{ v.purpose }}</small>
+                            </td>
+                            <td>
+                                <span style="font-size:.85rem;">
+                                    {{ v.start_datetime.strftime('%d/%m/%Y') }}
+                                </span><br>
+                                <small class="text-muted">
+                                    {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if v.status == 'pending' %}
+                                    <span class="badge bg-secondary">รออนุมัติ</span>
+                                {% elif v.status == 'approved' %}
+                                    <span class="badge bg-success">อนุมัติแล้ว</span>
+                                {% elif v.status == 'waiting_approver' %}
+                                    <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
+                                {% else %}
+                                    <span class="badge bg-danger">ไม่อนุมัติ</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
             <!-- Room Recent -->
             <div class="recent-card mt-3">
                 <div class="card-head">

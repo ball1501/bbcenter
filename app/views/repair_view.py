@@ -82,7 +82,7 @@ def index():
     return render_template('repair/repair.html', tickets=tickets, summary=summary)
 
 
-# 🟢 Route สำหรับแก้ไข (Update) — เฉพาะเจ้าของ หรือ admin
+# 🟢 Route สำหรับแก้ไข (Update) — เฉพาะเจ้าของ 
 @repair_bp.route('/repair/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit(id):
@@ -108,7 +108,7 @@ def edit(id):
     return render_template('repair/repair.html', tickets=tickets, edit_ticket=ticket, summary=summary)
 
 
-# 🟢 Route สำหรับลบ — เฉพาะเจ้าของ หรือ admin
+# 🟢 Route สำหรับลบ — เฉพาะเจ้าของ
 @repair_bp.route('/repair/delete/<int:id>', methods=['POST'])
 @login_required
 def delete(id):
@@ -143,6 +143,9 @@ def update_status(id):
             return redirect(url_for('repair.index'))
 
         ticket.status = 'in_progress'
+        new_urgency = request.form.get('urgency', '').strip()
+        if new_urgency:
+            ticket.urgency = new_urgency
         flash(f'รับงาน #{ ticket.id } เรียบร้อยแล้ว กำลังดำเนินการซ่อม', 'success')
 
     elif action == 'close':

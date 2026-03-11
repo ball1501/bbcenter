@@ -11,128 +11,151 @@
     <link href="{{ url_for('static', filename='vendor/datatables/css/responsive.bootstrap5.min.css') }}" rel="stylesheet">
     
     <style>
-        body { background-color: #f4f6f9; }
-        .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .card-header { border-top-left-radius: 15px !important; border-top-right-radius: 15px !important; }
-        .form-control, .form-select { border-radius: 10px; }
-        .btn { border-radius: 10px; }
-        /* บันทึกการซ่อม: truncate ถ้ายาว */
-        .resolved-note-cell {
-            max-width: 180px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            cursor: pointer;
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+        :root {
+            --bg:      #F0F2F5;
+            --surface: #FFFFFF;
+            --accent:  #2563EB;
+            --accent2: #1D4ED8;
         }
+        body { background: var(--bg); font-family: 'Sarabun', sans-serif; }
+        .page-hero {
+            background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 60%, #3B82F6 100%);
+            border-radius: 20px; padding: 28px 32px; margin-bottom: 24px; color: #fff;
+            position: relative; overflow: hidden;
+        }
+        .page-hero::before {
+            content: ''; position: absolute; top: -40px; right: -40px;
+            width: 200px; height: 200px; border-radius: 50%;
+            background: rgba(255,255,255,.06);
+        }
+        .surface-card {
+            background: var(--surface); border-radius: 16px;
+            border: none; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .form-control, .form-select { border-radius: 10px; font-family: 'IBM Plex Sans Thai', sans-serif; }
+        .btn { border-radius: 10px; font-family: 'IBM Plex Sans Thai', sans-serif; }
+        .card { border-radius: 16px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+        .card-header { border-top-left-radius: 16px !important; border-top-right-radius: 16px !important; }
+        .stat-card { border-radius: 12px; padding: 16px 20px; }
+        .stat-total      { background: #EFF6FF; border-left: 4px solid #3B82F6; }
+        .stat-pending    { background: #F9FAFB; border-left: 4px solid #9CA3AF; }
+        .stat-inprogress { background: #E0F2FE; border-left: 4px solid #0EA5E9; }
+        .stat-done       { background: #D1FAE5; border-left: 4px solid #10B981; }
+        .stat-urgent     { background: #FEE2E2; border-left: 4px solid #EF4444; }
+        .badge-pending    { background: #FEF3C7; color: #92400E; border-radius: 20px; padding: 3px 10px; }
+        .badge-inprogress { background: #DBEAFE; color: #1E40AF; border-radius: 20px; padding: 3px 10px; }
+        .badge-done       { background: #D1FAE5; color: #065F46; border-radius: 20px; padding: 3px 10px; }
+        .form-panel { background: #F8FAFC; border-radius: 12px; padding: 20px; }
+        .form-panel-edit { background: #FFFBEB; border-radius: 12px; padding: 20px; border: 1px solid #FCD34D; }
+        .resolved-note-cell {
+            max-width: 180px; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+        }
+        .section-title { font-family: 'IBM Plex Sans Thai', sans-serif; font-weight: 700; color: #1E3A5F; }
     </style>
 </head>
 <body>
 
 {% include 'navbar.html' %}
 
-<div class="container-fluid px-4 pb-5">
-    
+<div class="container-fluid px-4 pb-5" style="max-width:1400px;">
+
+    <!-- Hero -->
+    <div class="page-hero mt-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="position:relative;z-index:1;">
+            <div>
+                <h4 class="fw-bold mb-1" style="font-family:'IBM Plex Sans Thai',sans-serif;">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> ระบบแจ้งซ่อมไอที
+                </h4>
+                <div style="opacity:.85;font-size:.9rem;">แจ้งปัญหาคอมพิวเตอร์ อุปกรณ์ IT และเครือข่าย</div>
+            </div>
+        </div>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 10px;">
-                    {% if category == 'success' %}
-                        <i class="fa-solid fa-circle-check me-2"></i>
-                    {% elif category == 'danger' %}
-                        <i class="fa-solid fa-circle-xmark me-2"></i>
-                    {% elif category == 'warning' %}
-                        <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert" style="border-radius:12px;">
+                    {% if category == 'success' %}<i class="fa-solid fa-circle-check me-2"></i>
+                    {% elif category == 'danger' %}<i class="fa-solid fa-circle-xmark me-2"></i>
+                    {% elif category == 'warning' %}<i class="fa-solid fa-triangle-exclamation me-2"></i>
                     {% endif %}
                     {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    <!-- Summary Cards — เห็นเฉพาะ Admin -->
     {% if (current_user.role_repair == 'admin' or current_user.is_superadmin) and summary %}
     <div class="row g-3 mb-4">
-
-        <div class="col-12 d-flex align-items-center justify-content-between">
-            <h6 class="text-muted fw-bold mb-0">
-                <i class="fa-solid fa-chart-bar me-2 text-primary"></i>
-                สรุปประจำเดือน — {{ summary.month_label }}
-            </h6>
+        <div class="col-12">
+            <span class="section-title"><i class="fa-solid fa-chart-bar me-2 text-primary"></i>สรุปประจำเดือน — {{ summary.month_label }}</span>
         </div>
-
         <div class="col-6 col-md-3 col-xl">
-            <div class="card shadow-sm text-center py-3 px-2 bg-white" style="border-radius:12px;">
+            <div class="surface-card stat-card stat-total text-center">
                 <div class="text-muted small mb-1">รายการทั้งหมด</div>
-                <div class="fw-bold fs-3 text-dark">{{ summary.total }}</div>
+                <div class="fw-bold fs-3 text-primary">{{ summary.total }}</div>
                 <div class="text-muted" style="font-size:.75rem;">รายการ</div>
             </div>
         </div>
-
         <div class="col-6 col-md-3 col-xl">
-            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#F3F4F6;">
+            <div class="surface-card stat-card stat-pending text-center">
                 <div class="text-muted small mb-1">รอดำเนินการ</div>
                 <div class="fw-bold fs-3 text-secondary">{{ summary.pending }}</div>
                 <div class="text-muted" style="font-size:.75rem;">รายการ</div>
             </div>
         </div>
-
         <div class="col-6 col-md-3 col-xl">
-            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#E0F2FE;">
+            <div class="surface-card stat-card stat-inprogress text-center">
                 <div class="text-muted small mb-1">กำลังดำเนินการ</div>
                 <div class="fw-bold fs-3 text-info">{{ summary.in_progress }}</div>
                 <div class="text-muted" style="font-size:.75rem;">รายการ</div>
             </div>
         </div>
-
         <div class="col-6 col-md-3 col-xl">
-            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#D1FAE5;">
+            <div class="surface-card stat-card stat-done text-center">
                 <div class="text-muted small mb-1">เสร็จสิ้น</div>
                 <div class="fw-bold fs-3 text-success">{{ summary.done }}</div>
                 <div class="text-muted" style="font-size:.75rem;">รายการ</div>
             </div>
         </div>
-
         <div class="col-6 col-md-3 col-xl">
-            <div class="card shadow-sm text-center py-3 px-2" style="border-radius:12px; background:#FEE2E2;">
+            <div class="surface-card stat-card stat-urgent text-center">
                 <div class="text-muted small mb-1">ด่วนมาก 🔴</div>
                 <div class="fw-bold fs-3 text-danger">{{ summary.urgent }}</div>
                 <div class="text-muted" style="font-size:.75rem;">รายการ</div>
             </div>
         </div>
-
-        <!-- By Category -->
         {% if summary.by_category %}
         <div class="col-12">
-            <div class="card shadow-sm px-3 py-2" style="border-radius:12px;">
+            <div class="surface-card px-3 py-2">
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <span class="text-muted small fw-bold me-2">แยกตามประเภท:</span>
                     {% for cat, count in summary.by_category.items() %}
-                    <span class="badge bg-primary">{{ cat }}: {{ count }} งาน</span>
+                    <span class="badge" style="background:#DBEAFE;color:#1E40AF;border-radius:20px;padding:4px 12px;">{{ cat }}: {{ count }} งาน</span>
                     {% endfor %}
                 </div>
             </div>
         </div>
         {% endif %}
-
     </div>
     {% endif %}
 
-    <div class="row">
-        
+    <div class="row g-4">
         <!-- ฟอร์มแจ้งซ่อม / แก้ไข -->
         <div class="col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header {% if edit_ticket %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} py-3">
-                    <h5 class="mb-0 fw-bold">
+            <div class="surface-card p-4">
+                <div class="{% if edit_ticket %}form-panel-edit{% else %}form-panel{% endif %} mb-3">
+                    <h5 class="mb-0 fw-bold section-title">
                         {% if edit_ticket %}
-                            <i class="fa-solid fa-pen-to-square me-2"></i> แก้ไขแจ้งซ่อม #{{ edit_ticket.id }}
+                            <i class="fa-solid fa-pen-to-square me-2 text-warning"></i> แก้ไขแจ้งซ่อม #{{ edit_ticket.id }}
                         {% else %}
-                            <i class="fa-solid fa-wrench me-2"></i> ฟอร์มแจ้งซ่อมไอที
+                            <i class="fa-solid fa-wrench me-2" style="color:var(--accent);"></i> ฟอร์มแจ้งซ่อมไอที
                         {% endif %}
                     </h5>
                 </div>
-                <div class="card-body">
                     <form action="{% if edit_ticket %}/repair/edit/{{ edit_ticket.id }}{% else %}/repair{% endif %}" method="POST" enctype="multipart/form-data">
                         
                         <div class="mb-3">
@@ -185,36 +208,34 @@
                         {% endif %}
 
                         {% if edit_ticket %}
-                            <button type="submit" class="btn btn-warning w-100 fw-bold py-2 mb-2"><i class="fa-solid fa-save me-1"></i> บันทึกการแก้ไข</button>
+                            <button type="submit" class="btn w-100 fw-bold py-2 mb-2" style="background:#F59E0B;color:#fff;"><i class="fa-solid fa-save me-1"></i> บันทึกการแก้ไข</button>
                             <a href="/repair" class="btn btn-secondary w-100 fw-bold py-2"><i class="fa-solid fa-xmark me-1"></i> ยกเลิก</a>
                         {% else %}
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2"><i class="fa-solid fa-paper-plane me-1"></i> ส่งแจ้งซ่อม</button>
+                            <button type="submit" class="btn w-100 fw-bold py-2" style="background:var(--accent);color:#fff;"><i class="fa-solid fa-paper-plane me-1"></i> ส่งแจ้งซ่อม</button>
                         {% endif %}
 
                     </form>
-                </div>
             </div>
         </div>
 
         <!-- ตารางรายการแจ้งซ่อม -->
-        <div class="col-lg-8">
-            <div class="card h-100">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark"><i class="fa-solid fa-list-check text-primary me-2"></i> รายการแจ้งซ่อมทั้งหมด</h5>
+        <div class="col-lg-8 mb-4">
+            <div class="surface-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold section-title"><i class="fa-solid fa-list-check me-2" style="color:var(--accent);"></i> รายการแจ้งซ่อมทั้งหมด</h5>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="repairTable" class="table table-hover table-striped align-middle w-100">
-                            <thead class="table-info">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>วันที่แจ้ง</th>
-                                    <th>ผู้แจ้ง</th>
-                                    <th>หัวข้อปัญหา</th>
-                                    <th>สถานที่</th>
-                                    <th>ความเร่งด่วน</th>
-                                    <th>สถานะ</th>
-                                    <th>บันทึกการซ่อม</th>
+                <div class="table-responsive">
+                    <table id="repairTable" class="table table-hover align-middle w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>วันที่แจ้ง</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>หัวข้อปัญหา</th>
+                                <th>สถานที่</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                                <th>บันทึกการซ่อม</th>
                                     <th>จัดการ</th>
                                     {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
                                     <th>for Admin</th>
@@ -308,13 +329,14 @@
                                         {% if current_user.role_repair == 'admin' or current_user.is_superadmin == True %}
 
                                             {% if ticket.status == 'pending' %}
-                                            <form action="/repair/update_status/{{ ticket.id }}" method="POST" class="d-inline"
-                                                onsubmit="return confirm('รับงาน #{{ ticket.id }} เข้าสู่สถานะ กำลังซ่อม?');">
-                                                <input type="hidden" name="action" value="accept">
-                                                <button type="submit" class="btn btn-sm btn-outline-info mb-1" title="รับงาน">
-                                                    <i class="fa-solid fa-screwdriver-wrench"></i> รับงาน
-                                                </button>
-                                            </form>
+                                            <button type="button" class="btn btn-sm btn-outline-info mb-1"
+                                                    data-bs-toggle="modal" data-bs-target="#acceptModal"
+                                                    data-ticket-id="{{ ticket.id }}"
+                                                    data-ticket-subject="{{ ticket.subject }}"
+                                                    data-ticket-urgency="{{ ticket.urgency }}"
+                                                    title="รับงาน">
+                                                <i class="fa-solid fa-screwdriver-wrench"></i> รับงาน
+                                            </button>
 
                                             {% elif ticket.status == 'in_progress' %}
                                             <button type="button"
@@ -341,19 +363,17 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- 🆕 Modal: ปิดงาน + กรอกบันทึกผลการซ่อม -->
-<div class="modal fade" id="closeModal" tabindex="-1" aria-labelledby="closeModalLabel" aria-hidden="true">
+<!-- Modal: ปิดงาน -->
+<div class="modal fade" id="closeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 15px;">
-            <div class="modal-header bg-success text-white" style="border-radius: 15px 15px 0 0;">
-                <h5 class="modal-title fw-bold" id="closeModalLabel">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <div class="modal-header border-0" style="background:#D1FAE5;border-radius:16px 16px 0 0;">
+                <h5 class="modal-title fw-bold" style="color:#065F46;">
                     <i class="fa-solid fa-circle-check me-2"></i> ปิดงานแจ้งซ่อม
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -386,6 +406,45 @@
     </div>
 </div>
 
+<!-- Modal: รับงาน + แก้ความเร่งด่วน -->
+<div class="modal fade" id="acceptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <div class="modal-header border-0" style="background:#DBEAFE;border-radius:16px 16px 0 0;">
+                <h5 class="modal-title fw-bold" style="color:#1E40AF;">
+                    <i class="fa-solid fa-screwdriver-wrench me-2"></i> รับงานแจ้งซ่อม
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="acceptForm" method="POST">
+                <input type="hidden" name="action" value="accept">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        <i class="fa-solid fa-hashtag me-1"></i>
+                        <span id="acceptTicketInfo" class="fw-bold"></span>
+                    </p>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">ความเร่งด่วน</label>
+                        <select class="form-select" name="urgency" id="acceptUrgency">
+                            <option value="ปกติ">🟢 ปกติ (1-2 วัน)</option>
+                            <option value="ด่วน">🟡 ด่วน (กระทบงาน)</option>
+                            <option value="ด่วนมาก">🔴 ด่วนมาก (ระบบล่ม)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark me-1"></i> ยกเลิก
+                    </button>
+                    <button type="submit" class="btn fw-bold" style="background:#1D4ED8;color:#fff;">
+                        <i class="fa-solid fa-screwdriver-wrench me-1"></i> ยืนยันรับงาน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/datatables/js/dataTables.min.js') }}"></script>
@@ -399,6 +458,14 @@
             responsive: true,
             language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
             order: [[0, 'desc']]
+        });
+
+        // Modal: รับงาน
+        document.getElementById('acceptModal').addEventListener('show.bs.modal', function(e) {
+            const btn = e.relatedTarget;
+            document.getElementById('acceptForm').action = '/repair/update_status/' + btn.dataset.ticketId;
+            document.getElementById('acceptTicketInfo').textContent = 'รับงาน #' + btn.dataset.ticketId + ' — ' + btn.dataset.ticketSubject;
+            document.getElementById('acceptUrgency').value = btn.dataset.ticketUrgency || 'ปกติ';
         });
 
         // 🆕 เมื่อเปิด Modal ปิดงาน — ดึง ticket id และ subject มาใส่

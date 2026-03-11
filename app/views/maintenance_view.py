@@ -156,6 +156,10 @@ def update_status(id):
             except ValueError:
                 pass
 
+        new_urgency = request.form.get('urgency', '').strip()
+        if new_urgency:
+            ticket.urgency = new_urgency
+
         flash(f'รับงาน #{ticket.id} เรียบร้อยแล้ว', 'success')
 
     elif action == 'close':
