@@ -113,7 +113,9 @@ class Driver(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
-    is_active = db.Column(db.Boolean, default=True) # เผื่ออนาคตคนขับลาออก/พักงาน
+    is_active = db.Column(db.Boolean, default=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # ผูกกับ User account
+    linked_user = db.relationship('User', foreign_keys=[user_id])
 
 
 # ==========================================
@@ -191,6 +193,15 @@ class VehicleMileage(db.Model):
 
     booking          = db.relationship('VehicleBooking', backref='mileage')
     noter            = db.relationship('User', foreign_keys=[noted_by])
+
+    # ข้อ 1: รูปหน้าปัด
+    odometer_start_img = db.Column(db.String(255), nullable=True)
+    odometer_end_img   = db.Column(db.String(255), nullable=True)
+
+    # ข้อ 2: เติมน้ำมันระหว่างทาง
+    refuel        = db.Column(db.Boolean, default=False)
+    refuel_amount = db.Column(db.Float, default=0)
+    refuel_img    = db.Column(db.String(255), nullable=True)
 
 
 # ==========================================

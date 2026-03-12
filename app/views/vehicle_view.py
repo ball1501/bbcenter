@@ -1,13 +1,16 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_required, current_user
-from models import db, Vehicle, VehicleBooking, Driver, VehicleMileage, SystemConfig
+from models import db, User, Vehicle, VehicleBooking, Driver, VehicleMileage, SystemConfig
 from sqlalchemy import and_, extract
 from datetime import datetime, date
 from views.telegram_service import (notify_approved, notify_forwarded_to_approver, notify_approver_approved, notify_rejected)
+import os, time
+from werkzeug.utils import secure_filename
 
 vehicle_bp    = Blueprint('vehicle', __name__)
 adminfleet_bp = Blueprint('adminfleet', __name__)
 admincost_bp  = Blueprint('admincost', __name__)
+driver_bp     = Blueprint('driver', __name__)
 
 
 def is_vehicle_admin():
@@ -262,8 +265,9 @@ def manage_fleet():
 
         elif action == 'add_driver':
             new_driver = Driver(
-                name  = request.form.get('name'),
-                phone = request.form.get('phone')
+                name    = request.form.get('name'),
+                phone   = request.form.get('phone'),
+                user_id = request.form.get('user_id') or None
             )
             db.session.add(new_driver)
             db.session.commit()
@@ -296,6 +300,7 @@ def manage_fleet():
             driver.name      = request.form.get('name')
             driver.phone     = request.form.get('phone')
             driver.is_active = True if request.form.get('is_active') else False
+            driver.user_id   = request.form.get('user_id') or None
             db.session.commit()
             flash(f"อัปเดตข้อมูลคนขับ {driver.name} สำเร็จ!", 'success')
 
@@ -310,7 +315,8 @@ def manage_fleet():
 
     vehicles = Vehicle.query.order_by(Vehicle.id).all()
     drivers  = Driver.query.order_by(Driver.id).all()
-    return render_template('vehicle/admin/admin_manage_fleet.html', vehicles=vehicles, drivers=drivers)
+    users    = User.query.order_by(User.full_name).all()
+    return render_template('vehicle/admin/admin_manage_fleet.html', vehicles=vehicles, drivers=drivers, users=users)
 
 
 # ─────────────────────────────────────────────
@@ -467,34 +473,61 @@ def admin_assign(booking_id):
 # ─────────────────────────────────────────────
 # กรอกไมล์ (คนขับ + superadmin)
 # ─────────────────────────────────────────────
-def is_driver():
-    return current_user.role_vehicle == 'driver' or current_user.is_superadmin
+# def is_driver():
+#     return current_user.role_vehicle == 'driver' or current_user.is_superadmin
 
 @vehicle_bp.route('/vehicle/mileage', methods=['GET', 'POST'])
 @login_required
 def mileage_log():
-    if not is_driver():
+    if not is_vehicle_admin():
         flash('คุณไม่มีสิทธิ์เข้าหน้านี้', 'danger')
         return redirect(url_for('vehicle.index'))
 
     if request.method == 'POST':
         booking_id = int(request.form.get('booking_id'))
         booking    = VehicleBooking.query.get_or_404(booking_id)
-        entry_type = request.form.get('entry_type')  # 'start' หรือ 'end'
+        entry_type = request.form.get('entry_type')
 
         mileage = VehicleMileage.query.filter_by(booking_id=booking_id).first()
         if not mileage:
-            mileage          = VehicleMileage(booking_id=booking_id, noted_by=current_user.id)
+            mileage = VehicleMileage(booking_id=booking_id, noted_by=current_user.id)
             db.session.add(mileage)
+
+        upload_folder = os.path.join('static', 'uploads', 'mileage')
+        os.makedirs(upload_folder, exist_ok=True)
 
         if entry_type == 'start':
             mileage.odometer_start = int(request.form.get('odometer_start', 0))
             mileage.actual_start   = datetime.strptime(request.form.get('actual_start'), '%Y-%m-%dT%H:%M')
+            # รูปหน้าปัดก่อนออก
+            img = request.files.get('odometer_start_img')
+            if img and img.filename:
+                fname = f"{int(time.time())}_start_{secure_filename(img.filename)}"
+                img.save(os.path.join(upload_folder, fname))
+                mileage.odometer_start_img = fname
             flash(f'บันทึกเลขไมล์ก่อนออก #{booking_id} เรียบร้อย', 'success')
+
         elif entry_type == 'end':
             mileage.odometer_end = int(request.form.get('odometer_end', 0))
             mileage.actual_end   = datetime.strptime(request.form.get('actual_end'), '%Y-%m-%dT%H:%M')
-            # admin กรอกค่าน้ำมัน
+            # รูปหน้าปัดหลังกลับ
+            img = request.files.get('odometer_end_img')
+            if img and img.filename:
+                fname = f"{int(time.time())}_end_{secure_filename(img.filename)}"
+                img.save(os.path.join(upload_folder, fname))
+                mileage.odometer_end_img = fname
+            # เติมน้ำมันระหว่างทาง
+            mileage.refuel = True if request.form.get('refuel') else False
+            if mileage.refuel:
+                refuel_amt = request.form.get('refuel_amount', '').strip()
+                if refuel_amt:
+                    mileage.refuel_amount = float(refuel_amt)
+                refuel_img = request.files.get('refuel_img')
+                if refuel_img and refuel_img.filename:
+                    fname = f"{int(time.time())}_refuel_{secure_filename(refuel_img.filename)}"
+                    refuel_img.save(os.path.join(upload_folder, fname))
+                    mileage.refuel_img = fname
+            # admin กรอกค่าน้ำมัน manual
             fuel = request.form.get('fuel_cost', '').strip()
             if fuel:
                 mileage.fuel_cost = float(fuel)
@@ -503,7 +536,6 @@ def mileage_log():
         db.session.commit()
         return redirect(url_for('vehicle.mileage_log'))
 
-    # ดึงเฉพาะ booking ที่ approved
     bookings = VehicleBooking.query.filter_by(status='approved')\
                                    .order_by(VehicleBooking.start_datetime.desc()).all()
     return render_template('vehicle/vehicle_mileage.html', bookings=bookings)
@@ -535,6 +567,24 @@ def calc_ot(booking, mileage):
     ot_minutes = (actual_end.hour - WORK_END) * 60 + actual_end.minute
     ot_hours   = ot_minutes / 60
     return round(ot_hours * OT_RATE, 2)
+
+
+@admincost_bp.route('/vehicle/mileage/override-fuel', methods=['POST'])
+@login_required
+def override_fuel():
+    if not is_vehicle_admin():
+        flash('คุณไม่มีสิทธิ์', 'danger')
+        return redirect(url_for('vehicle.index'))
+    booking_id = int(request.form.get('booking_id'))
+    fuel_cost  = float(request.form.get('fuel_cost', 0))
+    mileage = VehicleMileage.query.filter_by(booking_id=booking_id).first()
+    if not mileage:
+        mileage = VehicleMileage(booking_id=booking_id, noted_by=current_user.id)
+        db.session.add(mileage)
+    mileage.fuel_cost = fuel_cost
+    db.session.commit()
+    flash(f'Override ค่าน้ำมัน #{booking_id} เป็น {fuel_cost:,.2f} บาท เรียบร้อย', 'success')
+    return redirect(request.referrer or url_for('admincost.cost_summary'))
 
 
 @admincost_bp.route('/admin/cost', methods=['GET', 'POST'])
@@ -578,11 +628,13 @@ def cost_summary():
         m        = b.mileage[0] if b.mileage else None
         distance = (m.odometer_end - m.odometer_start) if (m and m.odometer_end and m.odometer_start) else None
 
-        # คำนวณค่าน้ำมันอัตโนมัติจาก fuel_rate ของรถ
-        if distance and b.assigned_vehicle and b.assigned_vehicle.fuel_rate:
+        # คำนวณค่าน้ำมัน — ถ้ามี override ใช้เลย ไม่งั้นคำนวณจาก odometer
+        if m and m.fuel_cost:
+            fuel = m.fuel_cost
+        elif distance and b.assigned_vehicle and b.assigned_vehicle.fuel_rate:
             fuel = round((distance / b.assigned_vehicle.fuel_rate) * fuel_price, 2)
         else:
-            fuel = m.fuel_cost if m else 0
+            fuel = 0
 
         ot       = calc_ot(b, m)
         total    = (fuel or 0) + ot
@@ -609,3 +661,90 @@ def cost_summary():
                            month_label=month_label,
                            fuel_price=fuel_price,
                            now=now)
+
+# ─────────────────────────────────────────────
+# Driver View — หน้าคนขับ (mobile-friendly)
+# ─────────────────────────────────────────────
+@driver_bp.route('/driver')
+@login_required
+def driver_home():
+    # หา Driver record ที่ผูกกับ user นี้
+    driver = Driver.query.filter_by(user_id=current_user.id).first()
+    if not driver:
+        flash('บัญชีของคุณยังไม่ได้ผูกกับพนักงานขับรถ กรุณาติดต่อ Admin', 'warning')
+        return redirect(url_for('vehicle.index'))
+
+    # ดึงทริปที่ approved และคนขับคือตัวเอง (slot 1 หรือ slot 2)
+    from sqlalchemy import or_
+    bookings = VehicleBooking.query.filter(
+        VehicleBooking.status == 'approved',
+        or_(
+            VehicleBooking.driver_id  == driver.id,
+            VehicleBooking.driver2_id == driver.id
+        )
+    ).order_by(VehicleBooking.start_datetime.desc()).all()
+
+    return render_template('vehicle/driver_home.html',
+                           driver=driver,
+                           bookings=bookings,
+                           today_start=datetime.now().replace(hour=0, minute=0, second=0),
+                           today_end=datetime.now().replace(hour=23, minute=59, second=59))
+
+
+@driver_bp.route('/driver/mileage', methods=['POST'])
+@login_required
+def driver_mileage():
+    driver = Driver.query.filter_by(user_id=current_user.id).first()
+    if not driver:
+        flash('ไม่พบข้อมูลคนขับ', 'danger')
+        return redirect(url_for('driver.driver_home'))
+
+    booking_id = int(request.form.get('booking_id'))
+    booking    = VehicleBooking.query.get_or_404(booking_id)
+
+    # ตรวจสอบว่าทริปนี้เป็นของคนขับคนนี้จริง
+    if booking.driver_id != driver.id and booking.driver2_id != driver.id:
+        flash('คุณไม่มีสิทธิ์บันทึกทริปนี้', 'danger')
+        return redirect(url_for('driver.driver_home'))
+
+    entry_type = request.form.get('entry_type')
+    mileage    = VehicleMileage.query.filter_by(booking_id=booking_id).first()
+    if not mileage:
+        mileage = VehicleMileage(booking_id=booking_id, noted_by=current_user.id)
+        db.session.add(mileage)
+
+    upload_folder = os.path.join('static', 'uploads', 'mileage')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    if entry_type == 'start':
+        mileage.odometer_start = int(request.form.get('odometer_start', 0))
+        mileage.actual_start   = datetime.strptime(request.form.get('actual_start'), '%Y-%m-%dT%H:%M')
+        img = request.files.get('odometer_start_img')
+        if img and img.filename:
+            fname = f"{int(time.time())}_start_{secure_filename(img.filename)}"
+            img.save(os.path.join(upload_folder, fname))
+            mileage.odometer_start_img = fname
+        flash('✅ บันทึกเลขไมล์ก่อนออกเรียบร้อย', 'success')
+
+    elif entry_type == 'end':
+        mileage.odometer_end = int(request.form.get('odometer_end', 0))
+        mileage.actual_end   = datetime.strptime(request.form.get('actual_end'), '%Y-%m-%dT%H:%M')
+        img = request.files.get('odometer_end_img')
+        if img and img.filename:
+            fname = f"{int(time.time())}_end_{secure_filename(img.filename)}"
+            img.save(os.path.join(upload_folder, fname))
+            mileage.odometer_end_img = fname
+        mileage.refuel = True if request.form.get('refuel') else False
+        if mileage.refuel:
+            amt = request.form.get('refuel_amount', '').strip()
+            if amt:
+                mileage.refuel_amount = float(amt)
+            ri = request.files.get('refuel_img')
+            if ri and ri.filename:
+                fname = f"{int(time.time())}_refuel_{secure_filename(ri.filename)}"
+                ri.save(os.path.join(upload_folder, fname))
+                mileage.refuel_img = fname
+        flash('✅ ปิดงานเรียบร้อย', 'success')
+
+    db.session.commit()
+    return redirect(url_for('driver.driver_home'))

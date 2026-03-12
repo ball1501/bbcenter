@@ -90,6 +90,9 @@
                         {% if m and m.odometer_start %}
                             <span class="fw-bold text-success">{{ '{:,}'.format(m.odometer_start) }}</span>
                             <br><small class="text-muted">{{ m.actual_start.strftime('%d/%m %H:%M') if m.actual_start else '' }}</small>
+                            {% if m.odometer_start_img %}
+                            <br><a href="{{ url_for('static', filename='uploads/mileage/' + m.odometer_start_img) }}" target="_blank" class="badge bg-secondary text-decoration-none mt-1"><i class="fa-solid fa-image me-1"></i>รูป</a>
+                            {% endif %}
                         {% else %}
                             <span class="text-muted small">ยังไม่กรอก</span>
                         {% endif %}
@@ -100,6 +103,14 @@
                             <br><small class="text-muted">{{ m.actual_end.strftime('%d/%m %H:%M') if m.actual_end else '' }}</small>
                             {% if m.odometer_start %}
                             <br><small class="text-success fw-bold">+{{ '{:,}'.format(m.odometer_end - m.odometer_start) }} กม.</small>
+                            {% endif %}
+                            {% if m.odometer_end_img %}
+                            <br><a href="{{ url_for('static', filename='uploads/mileage/' + m.odometer_end_img) }}" target="_blank" class="badge bg-secondary text-decoration-none mt-1"><i class="fa-solid fa-image me-1"></i>รูป</a>
+                            {% endif %}
+                            {% if m.refuel %}
+                            <br><span class="badge mt-1" style="background:#FEF3C7;color:#92400E;"><i class="fa-solid fa-gas-pump me-1"></i>เติม {{ '{:,.0f}'.format(m.refuel_amount) }} ฿
+                            {% if m.refuel_img %}<a href="{{ url_for('static', filename='uploads/mileage/' + m.refuel_img) }}" target="_blank" class="ms-1 text-warning"><i class="fa-solid fa-receipt"></i></a>{% endif %}
+                            </span>
                             {% endif %}
                         {% else %}
                             <span class="text-muted small">ยังไม่กรอก</span>
@@ -139,17 +150,6 @@
                             <i class="fa-solid fa-pen me-1"></i> แก้ไข
                         </button>
                         {% endif %}
-
-                        <!-- ค่าน้ำมัน (admin/superadmin เท่านั้น) -->
-                        {% if current_user.is_superadmin or current_user.role_vehicle == 'admin' %}
-                        <button class="btn btn-sm btn-outline-warning mile-btn"
-                                data-bs-toggle="modal" data-bs-target="#fuelModal"
-                                data-id="{{ b.id }}"
-                                data-fuel="{{ m.fuel_cost if m else 0 }}"
-                                data-label="#{{ b.id }} {{ b.destination }}">
-                            <i class="fa-solid fa-gas-pump me-1"></i> ค่าน้ำมัน
-                        </button>
-                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -162,7 +162,7 @@
 <div class="modal fade" id="mileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow" style="border-radius:16px;">
-            <form method="POST" action="/vehicle/mileage">
+            <form method="POST" action="/vehicle/mileage" enctype="multipart/form-data">
                 <input type="hidden" name="booking_id" id="mileBookingId">
                 <input type="hidden" name="entry_type" id="mileType">
                 <div class="modal-header border-0" style="background:#CCFBF1;border-radius:16px 16px 0 0;">
@@ -181,6 +181,10 @@
                             <label class="form-label small fw-bold">เลขไมล์ก่อนออก (กม.) <span class="text-danger">*</span></label>
                             <input type="number" name="odometer_start" id="odoStart" class="form-control" min="0" placeholder="เช่น 125400">
                         </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-camera me-1 text-muted"></i> ถ่ายรูปหน้าปัด <span class="text-muted fw-normal">(ไม่บังคับ)</span></label>
+                            <input type="file" name="odometer_start_img" class="form-control form-control-sm" accept="image/*" capture="environment">
+                        </div>
                         <input type="hidden" name="actual_start" id="actualStart">
                         <div class="p-2 mt-2 rounded-3" style="background:#F0FDF4;border:1px solid #BBF7D0;">
                             <small class="text-success"><i class="fa-solid fa-clock me-1"></i> เวลาบันทึก: <span id="tsStartLabel" class="fw-bold">-</span></small>
@@ -196,6 +200,31 @@
                             <label class="form-label small fw-bold">เลขไมล์หลังกลับ (กม.) <span class="text-danger">*</span></label>
                             <input type="number" name="odometer_end" id="odoEnd" class="form-control" min="0" placeholder="เช่น 125650">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-camera me-1 text-muted"></i> ถ่ายรูปหน้าปัด <span class="text-muted fw-normal">(ไม่บังคับ)</span></label>
+                            <input type="file" name="odometer_end_img" class="form-control form-control-sm" accept="image/*" capture="environment">
+                        </div>
+
+                        <!-- เติมน้ำมันระหว่างทาง -->
+                        <div class="p-3 rounded-3 mb-2" style="background:#FEF9C3;border:1px solid #FDE68A;">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="refuel" id="refuelCheck" value="1">
+                                <label class="form-check-label fw-bold small" for="refuelCheck">
+                                    <i class="fa-solid fa-gas-pump me-1 text-warning"></i> มีการแวะเติมน้ำมันระหว่างทาง
+                                </label>
+                            </div>
+                            <div id="refuelWrap" style="display:none;">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-bold">ยอดเงินที่เติม (บาท)</label>
+                                    <input type="number" step="0.01" name="refuel_amount" id="refuelAmount" class="form-control form-control-sm" min="0" placeholder="เช่น 500.00">
+                                </div>
+                                <div>
+                                    <label class="form-label small fw-bold"><i class="fa-solid fa-receipt me-1"></i> ถ่ายรูปบิลน้ำมัน</label>
+                                    <input type="file" name="refuel_img" class="form-control form-control-sm" accept="image/*" capture="environment">
+                                </div>
+                            </div>
+                        </div>
+
                         <input type="hidden" name="actual_end" id="actualEnd">
                         <div class="p-2 mt-2 rounded-3" style="background:#EFF6FF;border:1px solid #BFDBFE;">
                             <small class="text-primary"><i class="fa-solid fa-clock me-1"></i> เวลาบันทึก: <span id="tsEndLabel" class="fw-bold">-</span></small>
@@ -205,37 +234,6 @@
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
                     <button type="submit" class="btn fw-bold px-4" style="background:#0F766E;color:#fff;border-radius:10px;">
-                        <i class="fa-solid fa-save me-1"></i> บันทึก
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: ค่าน้ำมัน -->
-<div class="modal fade" id="fuelModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow" style="border-radius:16px;">
-            <form method="POST" action="/vehicle/mileage">
-                <input type="hidden" name="booking_id" id="fuelBookingId">
-                <input type="hidden" name="entry_type" value="end">
-                <div class="modal-header border-0" style="background:#FEF9C3;border-radius:16px 16px 0 0;">
-                    <h5 class="modal-title fw-bold" style="color:#854D0E;">
-                        <i class="fa-solid fa-gas-pump me-2"></i> กรอกค่าน้ำมัน
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <p class="text-muted mb-3 small" id="fuelLabel"></p>
-                    <div class="mb-1">
-                        <label class="form-label small fw-bold">ค่าน้ำมัน (บาท) <span class="text-danger">*</span></label>
-                        <input type="number" name="fuel_cost" id="fuelCostInput" class="form-control" min="0" step="0.01" placeholder="เช่น 850.00">
-                    </div>
-                </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn fw-bold px-4" style="background:#CA8A04;color:#fff;border-radius:10px;">
                         <i class="fa-solid fa-save me-1"></i> บันทึก
                     </button>
                 </div>
@@ -260,6 +258,14 @@ $(document).ready(function() {
         ],
         order: [[0,'desc']],
         pageLength: 25,
+    });
+
+    // Toggle refuel section
+    document.getElementById('refuelCheck').addEventListener('change', function() {
+        document.getElementById('refuelWrap').style.display = this.checked ? 'block' : 'none';
+        if (!this.checked) {
+            document.getElementById('refuelAmount').value = '';
+        }
     });
 
     // Mile Modal
@@ -293,16 +299,13 @@ $(document).ready(function() {
             document.getElementById('odoStart').required            = false;
             document.getElementById('actualEnd').value              = tsVal;
             document.getElementById('tsEndLabel').textContent       = tsText;
+            // reset refuel
+            document.getElementById('refuelCheck').checked = false;
+            document.getElementById('refuelWrap').style.display = 'none';
+            document.getElementById('refuelAmount').value = '';
         }
     });
 
-    // Fuel Modal
-    document.getElementById('fuelModal').addEventListener('show.bs.modal', function(e) {
-        const btn = e.relatedTarget;
-        document.getElementById('fuelBookingId').value      = btn.dataset.id;
-        document.getElementById('fuelLabel').textContent    = btn.dataset.label;
-        document.getElementById('fuelCostInput').value      = btn.dataset.fuel || '';
-    });
 });
 </script>
 </body>

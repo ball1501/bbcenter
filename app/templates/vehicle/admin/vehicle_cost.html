@@ -198,6 +198,16 @@
                         {% if r.fuel %}
                         <span class="fw-bold text-warning">{{ '{:,.0f}'.format(r.fuel) }}</span> <small>฿</small>
                         {% else %}<span class="text-muted">-</span>{% endif %}
+                        {% if current_user.is_superadmin or current_user.role_vehicle == 'admin' %}
+                        <br><button class="btn btn-xs btn-outline-warning mt-1 override-fuel-btn"
+                                style="font-size:.7rem;padding:2px 8px;border-radius:6px;"
+                                data-bs-toggle="modal" data-bs-target="#overrideFuelModal"
+                                data-id="{{ b.id }}"
+                                data-fuel="{{ r.fuel or 0 }}"
+                                data-label="#{{ b.id }} {{ b.destination }}">
+                            <i class="fa-solid fa-pen me-1"></i>แก้ไข
+                        </button>
+                        {% endif %}
                     </td>
                     <td>
                         {% if r.ot > 0 %}
@@ -252,6 +262,47 @@ $(document).ready(function() {
         pageLength: 50,
         footerCallback: function() { this.api().columns().footer(); }
     });
+});
+</script>
+<!-- Modal: Override ค่าน้ำมัน -->
+<div class="modal fade" id="overrideFuelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST" action="/vehicle/mileage/override-fuel">
+                <input type="hidden" name="booking_id" id="ofBookingId">
+                <div class="modal-header border-0" style="background:#FEF9C3;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#854D0E;">
+                        <i class="fa-solid fa-gas-pump me-2"></i> Override ค่าน้ำมัน
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-1" id="ofLabel"></p>
+                    <div class="p-2 mb-3 rounded-3" style="background:#FEF3C7;border:1px solid #FDE68A;font-size:.82rem;">
+                        <i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                        ค่าปกติคำนวณจาก odometer × fuel_rate × fuel_price<br>
+                        กรอกที่นี่เพื่อ <strong>override</strong> ด้วยยอดจริงจากสลิป
+                    </div>
+                    <label class="form-label small fw-bold">ค่าน้ำมัน (บาท) <span class="text-danger">*</span></label>
+                    <input type="number" name="fuel_cost" id="ofFuelInput" class="form-control" min="0" step="0.01" placeholder="เช่น 850.00" required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn fw-bold px-4" style="background:#CA8A04;color:#fff;border-radius:10px;">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('overrideFuelModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('ofBookingId').value  = btn.dataset.id;
+    document.getElementById('ofLabel').textContent = btn.dataset.label;
+    document.getElementById('ofFuelInput').value  = btn.dataset.fuel || '';
 });
 </script>
 </body>

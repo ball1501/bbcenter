@@ -217,15 +217,24 @@
                 <form action="/admin/manage-fleet" method="POST">
                     <input type="hidden" name="action" value="add_driver">
                     <div class="row g-3">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <label class="form-label small fw-bold">ชื่อ-นามสกุล</label>
                             <input type="text" class="form-control" name="name" placeholder="สมชาย ใจดี" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label small fw-bold">เบอร์โทร</label>
                             <input type="text" class="form-control" name="phone" placeholder="081-234-5678" required>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-link me-1 text-primary"></i>ผูก User Account</label>
+                            <select class="form-select" name="user_id">
+                                <option value="">— ไม่ผูก —</option>
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.full_name or u.username }} ({{ u.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-success w-100 fw-bold">
                                 <i class="fa-solid fa-save me-1"></i> บันทึก
                             </button>
@@ -243,6 +252,7 @@
                         <th class="ps-3" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ID</th>
                         <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">ชื่อ</th>
                         <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">เบอร์โทร</th>
+                        <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">User Account</th>
                         <th style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">สถานะ</th>
                         <th class="text-center" style="font-size:.78rem;color:#6B7280;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">จัดการ</th>
                     </tr>
@@ -254,6 +264,15 @@
                         <td class="fw-bold">{{ d.name }}</td>
                         <td>
                             <i class="fa-solid fa-phone text-muted me-1"></i>{{ d.phone }}
+                        </td>
+                        <td>
+                            {% if d.linked_user %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                <i class="fa-solid fa-link me-1"></i>{{ d.linked_user.username }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">ยังไม่ผูก</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if d.is_active %}
@@ -272,7 +291,8 @@
                                     data-id="{{ d.id }}"
                                     data-name="{{ d.name }}"
                                     data-phone="{{ d.phone }}"
-                                    data-active="{{ 'true' if d.is_active else 'false' }}">
+                                    data-active="{{ 'true' if d.is_active else 'false' }}"
+                                    data-user-id="{{ d.user_id or '' }}">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger"
@@ -399,6 +419,15 @@
                             <input type="text" class="form-control" name="phone" id="ed_phone" required>
                         </div>
                         <div class="col-12">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-link me-1 text-primary"></i>ผูก User Account</label>
+                            <select class="form-select" name="user_id" id="ed_user_id">
+                                <option value="">— ไม่ผูก —</option>
+                                {% for u in users %}
+                                <option value="{{ u.id }}">{{ u.full_name or u.username }} ({{ u.username }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="is_active" id="ed_active" style="width:2.5em;height:1.4em;">
                                 <label class="form-check-label fw-bold ms-2" for="ed_active">พร้อมทำงาน (Active)</label>
@@ -491,6 +520,7 @@ $(document).ready(function() {
         document.getElementById('ed_name').value  = btn.dataset.name;
         document.getElementById('ed_phone').value = btn.dataset.phone;
         document.getElementById('ed_active').checked = (btn.dataset.active === 'true');
+        document.getElementById('ed_user_id').value = btn.dataset.userId || '';
     });
 
     // Delete Driver Modal
