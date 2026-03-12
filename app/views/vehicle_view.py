@@ -471,10 +471,8 @@ def admin_assign(booking_id):
     return redirect(url_for('vehicle.admin_trips'))
 
 # ─────────────────────────────────────────────
-# กรอกไมล์ (คนขับ + superadmin)
+# กรอกไมล์ (admin + superadmin)
 # ─────────────────────────────────────────────
-# def is_driver():
-#     return current_user.role_vehicle == 'driver' or current_user.is_superadmin
 
 @vehicle_bp.route('/vehicle/mileage', methods=['GET', 'POST'])
 @login_required
@@ -508,7 +506,15 @@ def mileage_log():
             flash(f'บันทึกเลขไมล์ก่อนออก #{booking_id} เรียบร้อย', 'success')
 
         elif entry_type == 'end':
-            mileage.odometer_end = int(request.form.get('odometer_end', 0))
+            submitted_end_mileage = int(request.form.get('odometer_end', 0))
+            # 🌟 เช็คว่าเลขไมล์ตอนจบ ต้องมากกว่าเลขไมล์ตอนเริ่ม
+            # (ดักเผื่อกรณี mileage.odometer_start มีค่าอยู่แล้ว)
+            if mileage.odometer_start is not None and submitted_end_mileage <= mileage.odometer_start:
+                flash(f'❌ บันทึกไม่สำเร็จ! เลขไมล์ตอนจบ ({submitted_end_mileage}) ต้องมากกว่าเลขไมล์ตอนเริ่ม ({mileage.odometer_start})', 'danger')
+                return redirect(url_for('vehicle.mileage_log')) # เด้งกลับไปให้กรอกใหม่
+            
+            # ถ้าเลขไมล์ถูกต้อง ค่อยเอาไปใส่ใน object
+            mileage.odometer_end = submitted_end_mileage
             mileage.actual_end   = datetime.strptime(request.form.get('actual_end'), '%Y-%m-%dT%H:%M')
             # รูปหน้าปัดหลังกลับ
             img = request.files.get('odometer_end_img')
@@ -727,7 +733,15 @@ def driver_mileage():
         flash('✅ บันทึกเลขไมล์ก่อนออกเรียบร้อย', 'success')
 
     elif entry_type == 'end':
-        mileage.odometer_end = int(request.form.get('odometer_end', 0))
+        submitted_end_mileage = int(request.form.get('odometer_end', 0))
+
+        # 🌟 เช็คว่าเลขไมล์ตอนจบ ต้องมากกว่าเลขไมล์ตอนเริ่ม
+        # (ดักเผื่อกรณี mileage.odometer_start มีค่าอยู่แล้ว)
+        if mileage.odometer_start is not None and submitted_end_mileage <= mileage.odometer_start:
+            flash(f'❌ บันทึกไม่สำเร็จ! เลขไมล์ตอนจบ ({submitted_end_mileage}) ต้องมากกว่าเลขไมล์ตอนเริ่ม ({mileage.odometer_start})', 'danger')
+            return redirect(url_for('driver.driver_home')) # เด้งกลับไปให้กรอกใหม่
+
+        mileage.odometer_end = submitted_end_mileage
         mileage.actual_end   = datetime.strptime(request.form.get('actual_end'), '%Y-%m-%dT%H:%M')
         img = request.files.get('odometer_end_img')
         if img and img.filename:

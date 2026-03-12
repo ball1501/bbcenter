@@ -37,6 +37,12 @@
                             <i class="fa-solid fa-chart-pie me-1"></i> ระบบสรุปค่าใช้จ่ายรถ (Admin)
                         </a>
                     </li>
+                {% elif current_user.role_vehicle in ['driver'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.blueprint == 'driver' %}active fw-bold text-info{% endif %}" href="/driver">
+                            <i class="fa-solid fa-car-on"></i> งานวันนี้ (Driver)
+                        </a>
+                    </li>
                 {% endif %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.blueprint == 'room' %}active fw-bold text-info{% endif %}" href="/room">
