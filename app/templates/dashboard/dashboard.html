@@ -653,102 +653,106 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้แจ้ง</th>
-                            <th>หัวข้อ</th>
-                            <th>ความเร่งด่วน</th>
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in recent_repair %}
-                        <tr>
-                            <td class="text-muted">#{{ t.id }}</td>
-                            <td>{{ t.user.full_name or t.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
-                                <small class="text-muted">{{ t.category }}</small>
-                            </td>
-                            <td>
-                                {% if t.urgency == 'ด่วนมาก' %}
-                                    <span class="badge bg-danger">ด่วนมาก</span>
-                                {% elif t.urgency == 'ด่วน' %}
-                                    <span class="badge bg-warning text-dark">ด่วน</span>
-                                {% else %}
-                                    <span class="badge bg-success">ปกติ</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if t.status == 'pending' %}
-                                    <span class="badge bg-secondary">รอดำเนินการ</span>
-                                {% elif t.status == 'in_progress' %}
-                                    <span class="badge bg-info text-dark">กำลังซ่อม</span>
-                                {% else %}
-                                    <span class="badge bg-success">เสร็จสิ้น</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>หัวข้อ</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in recent_repair %}
+                            <tr>
+                                <td class="text-muted">#{{ t.id }}</td>
+                                <td>{{ t.user.full_name or t.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                    <small class="text-muted">{{ t.category }}</small>
+                                </td>
+                                <td>
+                                    {% if t.urgency == 'ด่วนมาก' %}
+                                        <span class="badge bg-danger">ด่วนมาก</span>
+                                    {% elif t.urgency == 'ด่วน' %}
+                                        <span class="badge bg-warning text-dark">ด่วน</span>
+                                    {% else %}
+                                        <span class="badge bg-success">ปกติ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if t.status == 'pending' %}
+                                        <span class="badge bg-secondary">รอดำเนินการ</span>
+                                    {% elif t.status == 'in_progress' %}
+                                        <span class="badge bg-info text-dark">กำลังซ่อม</span>
+                                    {% else %}
+                                        <span class="badge bg-success">เสร็จสิ้น</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Maintenance Recent -->
-            <div class="recent-card">
+            <div class="recent-card mb-3">
                 <div class="card-head">
                     <h6><i class="fa-solid fa-toolbox me-2 text-warning"></i> รายการแจ้งซ่อมอาคารล่าสุด</h6>
                     <a href="/maintenance" class="text-decoration-none text-muted" style="font-size:.82rem;">
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้แจ้ง</th>
-                            <th>หัวข้อ</th>
-                            <th>ความเร่งด่วน</th>
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in recent_maint %}
-                        <tr>
-                            <td class="text-muted">#{{ t.id }}</td>
-                            <td>{{ t.user.full_name or t.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
-                                <small class="text-muted">{{ t.category }}</small>
-                            </td>
-                            <td>
-                                {% if t.urgency == 'ด่วนมาก' %}
-                                    <span class="badge bg-danger">ด่วนมาก</span>
-                                {% elif t.urgency == 'ด่วน' %}
-                                    <span class="badge bg-warning text-dark">ด่วน</span>
-                                {% else %}
-                                    <span class="badge bg-success">ปกติ</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if t.status == 'pending' %}
-                                    <span class="badge bg-secondary">รอช่างรับงาน</span>
-                                {% elif t.status == 'in_progress' %}
-                                    <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
-                                {% else %}
-                                    <span class="badge bg-success">เรียบร้อย</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>หัวข้อ</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in recent_maint %}
+                            <tr>
+                                <td class="text-muted">#{{ t.id }}</td>
+                                <td>{{ t.user.full_name or t.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                    <small class="text-muted">{{ t.category }}</small>
+                                </td>
+                                <td>
+                                    {% if t.urgency == 'ด่วนมาก' %}
+                                        <span class="badge bg-danger">ด่วนมาก</span>
+                                    {% elif t.urgency == 'ด่วน' %}
+                                        <span class="badge bg-warning text-dark">ด่วน</span>
+                                    {% else %}
+                                        <span class="badge bg-success">ปกติ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if t.status == 'pending' %}
+                                        <span class="badge bg-secondary">รอช่างรับงาน</span>
+                                    {% elif t.status == 'in_progress' %}
+                                        <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
+                                    {% else %}
+                                        <span class="badge bg-success">เรียบร้อย</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Vehicle Recent -->
@@ -759,51 +763,53 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้จอง</th>
-                            <th>สถานที่ปลายทาง</th>
-                            <th>ระยะเวลา</th>
-                            <!-- <th>สิ้นสุด</th> -->
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for v in recent_vehicle %}
-                        <tr>
-                            <td class="text-muted">#{{ v.id }}</td>
-                            <td>{{ v.user.full_name or v.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ v.destination }}</span><br>
-                                <small class="text-muted">{{ v.purpose }}</small>
-                            </td>
-                            <td>
-                                <span style="font-size:.85rem;">
-                                    {{ v.start_datetime.strftime('%d/%m/%Y') }}
-                                </span><br>
-                                <small class="text-muted">
-                                    {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
-                                </small>
-                            </td>
-                            <td>
-                                {% if v.status == 'pending' %}
-                                    <span class="badge bg-secondary">รออนุมัติ</span>
-                                {% elif v.status == 'approved' %}
-                                    <span class="badge bg-success">อนุมัติแล้ว</span>
-                                {% elif v.status == 'waiting_approver' %}
-                                    <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
-                                {% else %}
-                                    <span class="badge bg-danger">ไม่อนุมัติ</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้จอง</th>
+                                <th>สถานที่ปลายทาง</th>
+                                <th>ระยะเวลา</th>
+                                <!-- <th>สิ้นสุด</th> -->
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in recent_vehicle %}
+                            <tr>
+                                <td class="text-muted">#{{ v.id }}</td>
+                                <td>{{ v.user.full_name or v.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ v.destination }}</span><br>
+                                    <small class="text-muted">{{ v.purpose }}</small>
+                                </td>
+                                <td>
+                                    <span style="font-size:.85rem;">
+                                        {{ v.start_datetime.strftime('%d/%m/%Y') }}
+                                    </span><br>
+                                    <small class="text-muted">
+                                        {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if v.status == 'pending' %}
+                                        <span class="badge bg-secondary">รออนุมัติ</span>
+                                    {% elif v.status == 'approved' %}
+                                        <span class="badge bg-success">อนุมัติแล้ว</span>
+                                    {% elif v.status == 'waiting_approver' %}
+                                        <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">ไม่อนุมัติ</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Room Recent -->
@@ -814,36 +820,38 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ห้อง</th>
-                            <th>หัวข้อ</th>
-                            <th>ผู้จอง</th>
-                            <th>เวลาเริ่ม</th>
-                            <th>สิ้นสุด</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for b in recent_room %}
-                        <tr>
-                            <td>
-                                {% if 'เล็ก' in b.room_name %}
-                                <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
-                                {% else %}
-                                <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ b.title }}</td>
-                            <td>{{ b.user.full_name or b.user.username }}</td>
-                            <td>{{ b.start_time.strftime('%H:%M') }}</td>
-                            <td>{{ b.end_time.strftime('%H:%M') }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ห้อง</th>
+                                <th>หัวข้อ</th>
+                                <th>ผู้จอง</th>
+                                <th>เวลาเริ่ม</th>
+                                <th>สิ้นสุด</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in recent_room %}
+                            <tr>
+                                <td>
+                                    {% if 'เล็ก' in b.room_name %}
+                                    <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
+                                    {% else %}
+                                    <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ b.title }}</td>
+                                <td>{{ b.user.full_name or b.user.username }}</td>
+                                <td>{{ b.start_time.strftime('%H:%M') }}</td>
+                                <td>{{ b.end_time.strftime('%H:%M') }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
@@ -863,102 +871,106 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้แจ้ง</th>
-                            <th>หัวข้อ</th>
-                            <th>ความเร่งด่วน</th>
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in recent_repair %}
-                        <tr>
-                            <td class="text-muted">#{{ t.id }}</td>
-                            <td>{{ t.user.full_name or t.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
-                                <small class="text-muted">{{ t.category }}</small>
-                            </td>
-                            <td>
-                                {% if t.urgency == 'ด่วนมาก' %}
-                                    <span class="badge bg-danger">ด่วนมาก</span>
-                                {% elif t.urgency == 'ด่วน' %}
-                                    <span class="badge bg-warning text-dark">ด่วน</span>
-                                {% else %}
-                                    <span class="badge bg-success">ปกติ</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if t.status == 'pending' %}
-                                    <span class="badge bg-secondary">รอดำเนินการ</span>
-                                {% elif t.status == 'in_progress' %}
-                                    <span class="badge bg-info text-dark">กำลังซ่อม</span>
-                                {% else %}
-                                    <span class="badge bg-success">เสร็จสิ้น</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>หัวข้อ</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in recent_repair %}
+                            <tr>
+                                <td class="text-muted">#{{ t.id }}</td>
+                                <td>{{ t.user.full_name or t.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                    <small class="text-muted">{{ t.category }}</small>
+                                </td>
+                                <td>
+                                    {% if t.urgency == 'ด่วนมาก' %}
+                                        <span class="badge bg-danger">ด่วนมาก</span>
+                                    {% elif t.urgency == 'ด่วน' %}
+                                        <span class="badge bg-warning text-dark">ด่วน</span>
+                                    {% else %}
+                                        <span class="badge bg-success">ปกติ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if t.status == 'pending' %}
+                                        <span class="badge bg-secondary">รอดำเนินการ</span>
+                                    {% elif t.status == 'in_progress' %}
+                                        <span class="badge bg-info text-dark">กำลังซ่อม</span>
+                                    {% else %}
+                                        <span class="badge bg-success">เสร็จสิ้น</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Maintenance Recent -->
-            <div class="recent-card">
+            <div class="recent-card mb-3">
                 <div class="card-head">
                     <h6><i class="fa-solid fa-toolbox me-2 text-warning"></i> รายการแจ้งซ่อมอาคารล่าสุด</h6>
                     <a href="/maintenance" class="text-decoration-none text-muted" style="font-size:.82rem;">
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้แจ้ง</th>
-                            <th>หัวข้อ</th>
-                            <th>ความเร่งด่วน</th>
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in recent_maint %}
-                        <tr>
-                            <td class="text-muted">#{{ t.id }}</td>
-                            <td>{{ t.user.full_name or t.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ t.subject }}</span><br>
-                                <small class="text-muted">{{ t.category }}</small>
-                            </td>
-                            <td>
-                                {% if t.urgency == 'ด่วนมาก' %}
-                                    <span class="badge bg-danger">ด่วนมาก</span>
-                                {% elif t.urgency == 'ด่วน' %}
-                                    <span class="badge bg-warning text-dark">ด่วน</span>
-                                {% else %}
-                                    <span class="badge bg-success">ปกติ</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if t.status == 'pending' %}
-                                    <span class="badge bg-secondary">รอช่างรับงาน</span>
-                                {% elif t.status == 'in_progress' %}
-                                    <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
-                                {% else %}
-                                    <span class="badge bg-success">เรียบร้อย</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>หัวข้อ</th>
+                                <th>ความเร่งด่วน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in recent_maint %}
+                            <tr>
+                                <td class="text-muted">#{{ t.id }}</td>
+                                <td>{{ t.user.full_name or t.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ t.subject }}</span><br>
+                                    <small class="text-muted">{{ t.category }}</small>
+                                </td>
+                                <td>
+                                    {% if t.urgency == 'ด่วนมาก' %}
+                                        <span class="badge bg-danger">ด่วนมาก</span>
+                                    {% elif t.urgency == 'ด่วน' %}
+                                        <span class="badge bg-warning text-dark">ด่วน</span>
+                                    {% else %}
+                                        <span class="badge bg-success">ปกติ</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if t.status == 'pending' %}
+                                        <span class="badge bg-secondary">รอช่างรับงาน</span>
+                                    {% elif t.status == 'in_progress' %}
+                                        <span class="badge bg-info text-dark">กำลังดำเนินการ</span>
+                                    {% else %}
+                                        <span class="badge bg-success">เรียบร้อย</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ยังไม่มีรายการ</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Vehicle Recent -->
@@ -969,51 +981,53 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ผู้จอง</th>
-                            <th>สถานที่ปลายทาง</th>
-                            <th>ระยะเวลา</th>
-                            <!-- <th>สิ้นสุด</th> -->
-                            <th>สถานะ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for v in recent_vehicle %}
-                        <tr>
-                            <td class="text-muted">#{{ v.id }}</td>
-                            <td>{{ v.user.full_name or v.user.username }}</td>
-                            <td>
-                                <span style="font-size:.85rem;">{{ v.destination }}</span><br>
-                                <small class="text-muted">{{ v.purpose }}</small>
-                            </td>
-                            <td>
-                                <span style="font-size:.85rem;">
-                                    {{ v.start_datetime.strftime('%d/%m/%Y') }}
-                                </span><br>
-                                <small class="text-muted">
-                                    {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
-                                </small>
-                            </td>
-                            <td>
-                                {% if v.status == 'pending' %}
-                                    <span class="badge bg-secondary">รออนุมัติ</span>
-                                {% elif v.status == 'approved' %}
-                                    <span class="badge bg-success">อนุมัติแล้ว</span>
-                                {% elif v.status == 'waiting_approver' %}
-                                    <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
-                                {% else %}
-                                    <span class="badge bg-danger">ไม่อนุมัติ</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ผู้จอง</th>
+                                <th>สถานที่ปลายทาง</th>
+                                <th>ระยะเวลา</th>
+                                <!-- <th>สิ้นสุด</th> -->
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in recent_vehicle %}
+                            <tr>
+                                <td class="text-muted">#{{ v.id }}</td>
+                                <td>{{ v.user.full_name or v.user.username }}</td>
+                                <td>
+                                    <span style="font-size:.85rem;">{{ v.destination }}</span><br>
+                                    <small class="text-muted">{{ v.purpose }}</small>
+                                </td>
+                                <td>
+                                    <span style="font-size:.85rem;">
+                                        {{ v.start_datetime.strftime('%d/%m/%Y') }}
+                                    </span><br>
+                                    <small class="text-muted">
+                                        {{ v.start_datetime.strftime('%H:%M') }} - {{ v.end_datetime.strftime('%H:%M') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if v.status == 'pending' %}
+                                        <span class="badge bg-secondary">รออนุมัติ</span>
+                                    {% elif v.status == 'approved' %}
+                                        <span class="badge bg-success">อนุมัติแล้ว</span>
+                                    {% elif v.status == 'waiting_approver' %}
+                                        <span class="badge bg-primary">รอตัวแทนกองอนุมัติ</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">ไม่อนุมัติ</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center text-muted py-3">ยังไม่มีการจองรถวันนี้</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Room Recent -->
@@ -1024,36 +1038,38 @@
                         ดูทั้งหมด <i class="fa-solid fa-arrow-right fa-xs"></i>
                     </a>
                 </div>
-                <table class="table recent-table mb-0">
-                    <thead>
-                        <tr>
-                            <th>ห้อง</th>
-                            <th>หัวข้อ</th>
-                            <th>ผู้จอง</th>
-                            <th>เวลาเริ่ม</th>
-                            <th>สิ้นสุด</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for b in recent_room %}
-                        <tr>
-                            <td>
-                                {% if 'เล็ก' in b.room_name %}
-                                <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
-                                {% else %}
-                                <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ b.title }}</td>
-                            <td>{{ b.user.full_name or b.user.username }}</td>
-                            <td>{{ b.start_time.strftime('%H:%M') }}</td>
-                            <td>{{ b.end_time.strftime('%H:%M') }}</td>
-                        </tr>
-                        {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table recent-table mb-0 text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>ห้อง</th>
+                                <th>หัวข้อ</th>
+                                <th>ผู้จอง</th>
+                                <th>เวลาเริ่ม</th>
+                                <th>สิ้นสุด</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in recent_room %}
+                            <tr>
+                                <td>
+                                    {% if 'เล็ก' in b.room_name %}
+                                    <span class="badge rounded-pill" style="background:#DBEAFE;color:#1D4ED8;">{{ b.room_name }}</span>
+                                    {% else %}
+                                    <span class="badge rounded-pill" style="background:#FEF3C7;color:#B45309;">{{ b.room_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ b.title }}</td>
+                                <td>{{ b.user.full_name or b.user.username }}</td>
+                                <td>{{ b.start_time.strftime('%H:%M') }}</td>
+                                <td>{{ b.end_time.strftime('%H:%M') }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center text-muted py-3">ไม่มีการจองวันนี้</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
