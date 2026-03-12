@@ -11,3 +11,10 @@ app/instance/*.db
 
 # macOS
 .DS_Store
+
+# Uploads
+app/static/uploads/**/*.jpg
+app/static/uploads/**/*.jpeg
+app/static/uploads/**/*.png
+app/static/uploads/**/*.gif
+app/static/uploads/**/*.webp
