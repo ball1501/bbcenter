@@ -47,7 +47,13 @@
                 <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-pie me-2"></i> สรุปค่าใช้จ่ายรถ</h4>
                 <div style="opacity:.85;font-size:.9rem;">ค่าน้ำมัน + ค่า OT คนขับ แยกตามประเภทงาน</div>
             </div>
-            <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+                <a href="/admin/cost/export?year={{ sel_year }}&month={{ sel_month }}&expense_type={{ sel_expense }}"
+                   class="btn btn-success btn-sm fw-bold">
+                    <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                </a>
+            </div>
         </div>
     </div>
 

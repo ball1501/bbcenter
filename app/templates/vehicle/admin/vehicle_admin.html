@@ -622,6 +622,21 @@
                             </select>
                         </div>
 
+                        <!-- แผนกที่รับผิดชอบค่าใช้จ่าย — โชว์เมื่อเลือก department -->
+                        <div class="mb-2" id="assignDeptBudgetWrap" style="display:none;">
+                            <label class="form-label small fw-bold">
+                                <i class="fa-solid fa-building me-1 text-primary"></i>
+                                แผนกที่รับผิดชอบค่าใช้จ่าย
+                            </label>
+                            <select name="trip_department" id="assignTripDept" class="form-select">
+                                <option value="">-- เลือกแผนก --</option>
+                                {% for u in users_dept %}
+                                <option value="{{ u }}">{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">เลือกจากกองงบที่ตั้งไว้ใน Budget Management</small>
+                        </div>
+
                         <!-- ประเภทงานส่วนกลาง — โชว์เฉพาะตอนเลือก central -->
                         <div class="mb-2" id="assignCentralCatWrap" style="display:none;">
                             <label class="form-label small fw-bold">ประเภทงานส่วนกลาง <span
@@ -769,8 +784,15 @@
                 const expType = btn.dataset.expenseType || '';
                 document.getElementById('assignExpenseType').value = expType;
                 document.getElementById('assignCentralCat').value = btn.dataset.centralCategory || '';
+                document.getElementById('assignTripDept').value = btn.dataset.dept || '';
                 toggleCentralCat(expType);
+                toggleDeptBudget(expType);
             });
+
+            function toggleDeptBudget(val) {
+                const wrap = document.getElementById('assignDeptBudgetWrap');
+                wrap.style.display = val === 'department' ? 'block' : 'none';
+            }
 
             function toggleCentralCat(val) {
                 const wrap = document.getElementById('assignCentralCatWrap');
@@ -785,6 +807,7 @@
             }
             document.getElementById('assignExpenseType').addEventListener('change', function () {
                 toggleCentralCat(this.value);
+                toggleDeptBudget(this.value);
             });
 
             // เช็คว่าต้องโชว์รถคัน 2 ไหม

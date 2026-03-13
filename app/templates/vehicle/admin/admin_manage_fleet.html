@@ -73,14 +73,14 @@
     <div class="page-header">
         <div class="d-flex align-items-center justify-content-between">
             <div>
-                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gears me-2"></i> จัดการรถและคนขับ</h4>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-gears me-2"></i> จัดการรถ, คนขับ, งบประมาณกอง</h4>
                 <div style="opacity:.75; font-size:.88rem;">
                     รถทั้งหมด {{ vehicles|length }} คัน &nbsp;·&nbsp; คนขับทั้งหมด {{ drivers|length }} คน
                 </div>
             </div>
-            <a href="{{ url_for('vehicle.index') }}" class="btn btn-sm fw-bold"
+            <a href="{{ url_for('adminfleet.budget_manage') }}" class="btn btn-sm fw-bold"
                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;">
-                <i class="fa-solid fa-arrow-left me-1"></i> กลับหน้าจองรถ
+                <i class="fa-solid fa-building-columns me-1"></i> จัดการงบประมาณกอง
             </a>
         </div>
     </div>
@@ -162,6 +162,23 @@
                         </td>
                         <td>
                             <i class="fa-solid fa-gas-pump text-warning me-1"></i>{{ v.fuel_rate or 10 }} กม./ล.
+                            {% set today = now.date() %}
+                            {% if v.next_service_date %}
+                                {% set days_svc = (v.next_service_date - today).days %}
+                                {% if days_svc <= 0 %}
+                                <br><span class="badge bg-danger mt-1" style="font-size:.68rem;">⚠️ เลยนัดซ่อม</span>
+                                {% elif days_svc <= 30 %}
+                                <br><span class="badge bg-warning text-dark mt-1" style="font-size:.68rem;">🔧 นัดซ่อม {{ days_svc }} วัน</span>
+                                {% endif %}
+                            {% endif %}
+                            {% if v.tax_due_date %}
+                                {% set days_tax = (v.tax_due_date - today).days %}
+                                {% if days_tax <= 0 %}
+                                <br><span class="badge bg-danger mt-1" style="font-size:.68rem;">⚠️ เลยต่อภาษี</span>
+                                {% elif days_tax <= 30 %}
+                                <br><span class="badge bg-warning text-dark mt-1" style="font-size:.68rem;">📋 ต่อภาษี {{ days_tax }} วัน</span>
+                                {% endif %}
+                            {% endif %}
                         </td>
                         <td>
                             {% if v.status == 'active' %}
@@ -175,6 +192,23 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
+                            <!-- ประวัติ -->
+                            <button class="btn btn-sm btn-outline-info me-1"
+                                    data-bs-toggle="modal" data-bs-target="#vehicleHistoryModal"
+                                    data-id="{{ v.id }}"
+                                    data-name="{{ v.brand }} {{ v.model }} ({{ v.license_plate }})">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </button>
+                            <!-- วันนัดซ่อม/ต่อภาษี -->
+                            <button class="btn btn-sm btn-outline-success me-1"
+                                    data-bs-toggle="modal" data-bs-target="#serviceModal"
+                                    data-id="{{ v.id }}"
+                                    data-name="{{ v.brand }} {{ v.model }}"
+                                    data-svc-date="{{ v.next_service_date.strftime('%Y-%m-%d') if v.next_service_date else '' }}"
+                                    data-svc-km="{{ v.next_service_km or '' }}"
+                                    data-tax-date="{{ v.tax_due_date.strftime('%Y-%m-%d') if v.tax_due_date else '' }}">
+                                <i class="fa-solid fa-wrench"></i>
+                            </button>
                             <button class="btn btn-sm btn-outline-warning me-1"
                                     data-bs-toggle="modal" data-bs-target="#editVehicleModal"
                                     data-id="{{ v.id }}"
@@ -530,6 +564,128 @@ $(document).ready(function() {
         document.getElementById('dd_name').textContent = btn.dataset.name;
     });
 });
+</script>
+<!-- ===== Modal: Vehicle History ===== -->
+<div class="modal fade" id="vehicleHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <div class="modal-header border-0" style="background:#EFF6FF;border-radius:16px 16px 0 0;">
+                <h5 class="modal-title fw-bold text-primary">
+                    <i class="fa-solid fa-clock-rotate-left me-2"></i>
+                    ประวัติการใช้งาน — <span id="histVehicleName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="histLoading" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin me-2"></i> กำลังโหลด...
+                </div>
+                <div id="histContent" style="display:none;">
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="p-3 rounded-3 flex-grow-1 text-center" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+                            <div class="text-muted small">รวมระยะทางทั้งหมด</div>
+                            <div class="fw-bold fs-4 text-primary"><span id="histTotalKm">0</span> <small class="fs-6">กม.</small></div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>วันที่</th>
+                                    <th>ปลายทาง</th>
+                                    <th>คนขับ</th>
+                                    <th>ระยะทาง</th>
+                                    <th>ไมล์สุดท้าย</th>
+                                </tr>
+                            </thead>
+                            <tbody id="histTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Modal: Service / Tax Dates ===== -->
+<div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST" action="/admin/manage-fleet/service">
+                <input type="hidden" name="vehicle_id" id="svc_id">
+                <div class="modal-header border-0" style="background:#F0FDF4;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold text-success">
+                        <i class="fa-solid fa-wrench me-2"></i> นัดซ่อม / ต่อภาษี — <span id="svcVehicleName"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-screwdriver-wrench me-1 text-warning"></i> วันนัดเข้าศูนย์ / เปลี่ยนน้ำมันเครื่อง</label>
+                            <input type="date" name="next_service_date" id="svc_date" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-gauge me-1 text-info"></i> เข้าศูนย์เมื่อไมล์ถึง (กม.)</label>
+                            <input type="number" name="next_service_km" id="svc_km" class="form-control" min="0" placeholder="เช่น 130000">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold"><i class="fa-solid fa-file-invoice me-1 text-primary"></i> วันต่อภาษีรถ</label>
+                            <input type="date" name="tax_due_date" id="svc_tax" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Vehicle History Modal
+    document.getElementById('vehicleHistoryModal').addEventListener('show.bs.modal', function(e) {
+        const btn  = e.relatedTarget;
+        const vid  = btn.dataset.id;
+        document.getElementById('histVehicleName').textContent = btn.dataset.name;
+        document.getElementById('histLoading').style.display  = 'block';
+        document.getElementById('histContent').style.display  = 'none';
+
+        fetch(`/api/vehicle/${vid}/history`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('histTotalKm').textContent = data.total_km.toLocaleString();
+                const tbody = document.getElementById('histTableBody');
+                tbody.innerHTML = '';
+                data.rows.forEach(r => {
+                    tbody.innerHTML += `<tr>
+                        <td class="text-muted">#${r.id}</td>
+                        <td>${r.date}</td>
+                        <td>${r.destination}</td>
+                        <td>${r.driver}</td>
+                        <td>${r.distance ? '<span class="fw-bold text-success">+' + r.distance.toLocaleString() + ' กม.</span>' : '<span class="text-muted">-</span>'}</td>
+                        <td>${r.odometer_end ? r.odometer_end.toLocaleString() : '-'}</td>
+                    </tr>`;
+                });
+                document.getElementById('histLoading').style.display = 'none';
+                document.getElementById('histContent').style.display = 'block';
+            });
+    });
+
+    // Service Modal
+    document.getElementById('serviceModal').addEventListener('show.bs.modal', function(e) {
+        const btn = e.relatedTarget;
+        document.getElementById('svc_id').value              = btn.dataset.id;
+        document.getElementById('svcVehicleName').textContent = btn.dataset.name;
+        document.getElementById('svc_date').value            = btn.dataset.svcDate || '';
+        document.getElementById('svc_km').value              = btn.dataset.svcKm || '';
+        document.getElementById('svc_tax').value             = btn.dataset.taxDate || '';
+    });
 </script>
 </body>
 </html>

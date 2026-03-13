@@ -1,8 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import login_required, current_user
-from models import db, User, Vehicle, VehicleBooking, Driver, VehicleMileage, SystemConfig
-from sqlalchemy import and_, extract
-from datetime import datetime, date
+from models import db, User, Vehicle, VehicleBooking, Driver, VehicleMileage, SystemConfig, DepartmentBudget
+from sqlalchemy import and_, extract, or_
+from datetime import datetime, date, timedelta
 from views.telegram_service import (notify_approved, notify_forwarded_to_approver, notify_approver_approved, notify_rejected)
 import os, time
 from werkzeug.utils import secure_filename
@@ -316,7 +316,9 @@ def manage_fleet():
     vehicles = Vehicle.query.order_by(Vehicle.id).all()
     drivers  = Driver.query.order_by(Driver.id).all()
     users    = User.query.order_by(User.full_name).all()
-    return render_template('vehicle/admin/admin_manage_fleet.html', vehicles=vehicles, drivers=drivers, users=users)
+    return render_template('vehicle/admin/admin_manage_fleet.html',
+                           vehicles=vehicles, drivers=drivers, users=users,
+                           now=datetime.now())
 
 
 # ─────────────────────────────────────────────
@@ -328,11 +330,11 @@ def admin_trips():
     if not is_vehicle_admin():
         flash('คุณไม่มีสิทธิ์เข้าหน้านี้', 'danger')
         return redirect(url_for('vehicle.index'))
-
+ 
     bookings = VehicleBooking.query.order_by(VehicleBooking.created_at.desc()).all()
     vehicles = Vehicle.query.filter_by(status='active').order_by(Vehicle.id).all()
     drivers  = Driver.query.filter_by(is_active=True).order_by(Driver.id).all()
-
+ 
     # จัดกลุ่ม trip_group เพื่อโชว์ summary
     groups = {}
     for b in bookings:
@@ -340,12 +342,16 @@ def admin_trips():
             if b.trip_group not in groups:
                 groups[b.trip_group] = []
             groups[b.trip_group].append(b)
-
+ 
+    users_dept = [r[0] for r in db.session.query(DepartmentBudget.department)\
+                  .distinct().order_by(DepartmentBudget.department).all()]
+ 
     return render_template('vehicle/admin/vehicle_admin.html',
                            bookings=bookings,
                            vehicles=vehicles,
                            drivers=drivers,
-                           groups=groups)
+                           groups=groups,
+                           users_dept=users_dept)
 
 
 # ─────────────────────────────────────────────
@@ -456,6 +462,7 @@ def admin_assign(booking_id):
         booking.trip_group       = trip_group
         booking.expense_type     = request.form.get('expense_type') or None
         booking.central_category = request.form.get('central_category') or None
+        booking.trip_department  = request.form.get('trip_department') or booking.user.department or None
 
         if assign_action == 'forward':
             booking.status = 'waiting_approver'
@@ -471,13 +478,15 @@ def admin_assign(booking_id):
     return redirect(url_for('vehicle.admin_trips'))
 
 # ─────────────────────────────────────────────
-# กรอกไมล์ (admin + superadmin)
+# กรอกไมล์ (คนขับ + superadmin)
 # ─────────────────────────────────────────────
+def is_driver():
+    return current_user.role_vehicle == 'driver' or current_user.is_superadmin
 
 @vehicle_bp.route('/vehicle/mileage', methods=['GET', 'POST'])
 @login_required
 def mileage_log():
-    if not is_vehicle_admin():
+    if not is_driver():
         flash('คุณไม่มีสิทธิ์เข้าหน้านี้', 'danger')
         return redirect(url_for('vehicle.index'))
 
@@ -540,6 +549,25 @@ def mileage_log():
             flash(f'บันทึกเลขไมล์หลังกลับ #{booking_id} เรียบร้อย', 'success')
 
         db.session.commit()
+
+        # หักงบแผนกอัตโนมัติ
+        if entry_type == 'end' and booking.trip_department and booking.expense_type == 'department':
+            m2         = VehicleMileage.query.filter_by(booking_id=booking_id).first()
+            distance   = (m2.odometer_end - m2.odometer_start) if (m2 and m2.odometer_end and m2.odometer_start) else None
+            fuel_price = float(SystemConfig.get('fuel_price', '40'))
+            trip_cost  = m2.fuel_cost if (m2 and m2.fuel_cost) else \
+                         (round((distance / booking.assigned_vehicle.fuel_rate) * fuel_price, 2)
+                          if distance and booking.assigned_vehicle and booking.assigned_vehicle.fuel_rate else 0)
+            if trip_cost > 0:
+                now2   = datetime.now()
+                budget = DepartmentBudget.query.filter_by(
+                    department=booking.trip_department,
+                    year=now2.year, month=now2.month
+                ).first()
+                if budget:
+                    budget.used_amount = round(budget.used_amount + trip_cost, 2)
+                    db.session.commit()
+
         return redirect(url_for('vehicle.mileage_log'))
 
     bookings = VehicleBooking.query.filter_by(status='approved')\
@@ -734,13 +762,13 @@ def driver_mileage():
 
     elif entry_type == 'end':
         submitted_end_mileage = int(request.form.get('odometer_end', 0))
-
         # 🌟 เช็คว่าเลขไมล์ตอนจบ ต้องมากกว่าเลขไมล์ตอนเริ่ม
         # (ดักเผื่อกรณี mileage.odometer_start มีค่าอยู่แล้ว)
         if mileage.odometer_start is not None and submitted_end_mileage <= mileage.odometer_start:
             flash(f'❌ บันทึกไม่สำเร็จ! เลขไมล์ตอนจบ ({submitted_end_mileage}) ต้องมากกว่าเลขไมล์ตอนเริ่ม ({mileage.odometer_start})', 'danger')
             return redirect(url_for('driver.driver_home')) # เด้งกลับไปให้กรอกใหม่
-
+        
+        # ถ้าเลขไมล์ถูกต้อง ค่อยเอาไปใส่ใน object
         mileage.odometer_end = submitted_end_mileage
         mileage.actual_end   = datetime.strptime(request.form.get('actual_end'), '%Y-%m-%dT%H:%M')
         img = request.files.get('odometer_end_img')
@@ -761,4 +789,251 @@ def driver_mileage():
         flash('✅ ปิดงานเรียบร้อย', 'success')
 
     db.session.commit()
+
+    # ── หักงบประมาณแผนกอัตโนมัติเมื่อปิดงาน ──
+    if entry_type == 'end' and booking.trip_department and booking.expense_type == 'department':
+        m2       = VehicleMileage.query.filter_by(booking_id=booking_id).first()
+        distance = (m2.odometer_end - m2.odometer_start) if (m2 and m2.odometer_end and m2.odometer_start) else None
+        fuel_price = float(SystemConfig.get('fuel_price', '40'))
+        if m2 and m2.fuel_cost:
+            trip_cost = m2.fuel_cost
+        elif distance and booking.assigned_vehicle and booking.assigned_vehicle.fuel_rate:
+            trip_cost = round((distance / booking.assigned_vehicle.fuel_rate) * fuel_price, 2)
+        else:
+            trip_cost = 0
+        if trip_cost > 0:
+            now2   = datetime.now()
+            budget = DepartmentBudget.query.filter_by(
+                department=booking.trip_department,
+                year=now2.year, month=now2.month
+            ).first()
+            if budget:
+                budget.used_amount = round(budget.used_amount + trip_cost, 2)
+                db.session.commit()
+
     return redirect(url_for('driver.driver_home'))
+
+
+# ══════════════════════════════════════════════════════
+# Feature 3: Budget Routes
+# ══════════════════════════════════════════════════════
+@adminfleet_bp.route('/admin/budget', methods=['GET', 'POST'])
+@login_required
+def budget_manage():
+    if not is_vehicle_admin():
+        flash('คุณไม่มีสิทธิ์', 'danger')
+        return redirect(url_for('vehicle.index'))
+ 
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'set_budget':
+            dept   = request.form.get('department', '').strip()
+            year   = int(request.form.get('year'))
+            month  = int(request.form.get('month'))
+            amount = float(request.form.get('budget_amount', 0))
+            budget = DepartmentBudget.query.filter_by(department=dept, year=year, month=month).first()
+            if budget:
+                budget.budget_amount = amount
+            else:
+                budget = DepartmentBudget(department=dept, year=year, month=month, budget_amount=amount)
+                db.session.add(budget)
+            db.session.commit()
+            flash(f'ตั้งงบ {dept} เดือน {month}/{year} = {amount:,.0f} บาท เรียบร้อย', 'success')
+        return redirect(url_for('adminfleet.budget_manage'))
+ 
+    now        = datetime.now()
+    sel_year   = int(request.args.get('year', now.year))
+    sel_month  = int(request.args.get('month', now.month))
+    raw_budgets = DepartmentBudget.query.filter_by(year=sel_year, month=sel_month)\
+                                        .order_by(DepartmentBudget.department).all()
+ 
+    # คำนวณ pct และ remaining ใน Python ก่อนส่งไป template
+    budgets = []
+    for b in raw_budgets:
+        pct = round(min(b.used_amount / b.budget_amount * 100, 100), 1) if b.budget_amount > 0 else 0
+        budgets.append({
+            'id':            b.id,
+            'department':    b.department,
+            'budget_amount': b.budget_amount,
+            'used_amount':   b.used_amount,
+            'remaining':     round(b.budget_amount - b.used_amount, 2),
+            'pct':           pct,
+        })
+ 
+    departments = [r[0] for r in db.session.query(User.department).filter(
+        User.department.isnot(None)).distinct().order_by(User.department).all()]
+ 
+    TH_MONTHS = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+    return render_template('vehicle/admin/budget_manage.html',
+                           budgets=budgets, departments=departments,
+                           sel_year=sel_year, sel_month=sel_month,
+                           month_label=f"{TH_MONTHS[sel_month]} {sel_year+543}",
+                           now=now)
+
+
+# ══════════════════════════════════════════════════════
+# Feature 4: Vehicle History (API — ใช้ใน manage-fleet)
+# ══════════════════════════════════════════════════════
+@adminfleet_bp.route('/api/vehicle/<int:vid>/history')
+@login_required
+def vehicle_history(vid):
+    vehicle  = Vehicle.query.get_or_404(vid)
+    bookings = VehicleBooking.query.filter(
+        VehicleBooking.assigned_vehicle_id == vid,
+        VehicleBooking.status == 'approved'
+    ).order_by(VehicleBooking.start_datetime.desc()).limit(20).all()
+
+    rows = []
+    total_km = 0
+    for b in bookings:
+        m = b.mileage[0] if b.mileage else None
+        dist = (m.odometer_end - m.odometer_start) if (m and m.odometer_end and m.odometer_start) else None
+        if dist:
+            total_km += dist
+        rows.append({
+            'id':          b.id,
+            'date':        b.start_datetime.strftime('%d/%m/%Y'),
+            'destination': b.destination,
+            'driver':      b.driver.name if b.driver else '-',
+            'distance':    dist,
+            'odometer_end': m.odometer_end if m else None,
+        })
+    return jsonify({'vehicle': f"{vehicle.brand} {vehicle.model}", 'total_km': total_km, 'rows': rows})
+
+
+# ══════════════════════════════════════════════════════
+# Feature 5: Excel Export
+# ══════════════════════════════════════════════════════
+@admincost_bp.route('/admin/cost/export')
+@login_required
+def cost_export():
+    if not is_vehicle_admin():
+        flash('คุณไม่มีสิทธิ์', 'danger')
+        return redirect(url_for('vehicle.index'))
+
+    import io
+    try:
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    except ImportError:
+        flash('ไม่พบ openpyxl — รัน: pip install openpyxl', 'danger')
+        return redirect(url_for('admincost.cost_summary'))
+
+    from flask import send_file
+    now       = datetime.now()
+    sel_year  = int(request.args.get('year', now.year))
+    sel_month = int(request.args.get('month', now.month))
+    sel_exp   = request.args.get('expense_type', '')
+    fuel_price = float(SystemConfig.get('fuel_price', '40'))
+
+    q = VehicleBooking.query.filter(
+        VehicleBooking.status == 'approved',
+        extract('year',  VehicleBooking.start_datetime) == sel_year,
+        extract('month', VehicleBooking.start_datetime) == sel_month,
+    )
+    if sel_exp:
+        q = q.filter(VehicleBooking.expense_type == sel_exp)
+    bookings = q.order_by(VehicleBooking.start_datetime).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    TH_MONTHS = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+    ws.title = f"ค่าใช้จ่าย {TH_MONTHS[sel_month]} {sel_year+543}"
+
+    # Header row
+    headers = ['#','ผู้จอง','แผนก','ปลายทาง','รถ','คนขับ','วันเดินทาง',
+               'ไมล์เริ่ม','ไมล์จบ','ระยะทาง(กม.)','ค่าน้ำมัน(฿)','OT(฿)','รวม(฿)','ประเภท']
+    hdr_fill = PatternFill('solid', fgColor='1E3A5F')
+    hdr_font = Font(bold=True, color='FFFFFF', name='Sarabun')
+    thin = Side(style='thin', color='D1D5DB')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    for ci, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=ci, value=h)
+        cell.font       = hdr_font
+        cell.fill       = hdr_fill
+        cell.alignment  = Alignment(horizontal='center', vertical='center')
+        cell.border     = border
+
+    EXP_LABEL = {'central':'ส่วนกลาง','department':'หน่วยงาน','personal':'ส่วนตัว'}
+    total_fuel = total_ot = total_all = 0
+
+    for ri, b in enumerate(bookings, 2):
+        m        = b.mileage[0] if b.mileage else None
+        distance = (m.odometer_end - m.odometer_start) if (m and m.odometer_end and m.odometer_start) else None
+        if m and m.fuel_cost:
+            fuel = m.fuel_cost
+        elif distance and b.assigned_vehicle and b.assigned_vehicle.fuel_rate:
+            fuel = round((distance / b.assigned_vehicle.fuel_rate) * fuel_price, 2)
+        else:
+            fuel = 0
+        ot    = calc_ot(b, m)
+        total = fuel + ot
+        total_fuel += fuel; total_ot += ot; total_all += total
+
+        row_data = [
+            b.id,
+            b.user.full_name or b.user.username,
+            b.trip_department or b.user.department or '-',
+            b.destination,
+            f"{b.assigned_vehicle.brand} {b.assigned_vehicle.model} ({b.assigned_vehicle.license_plate})" if b.assigned_vehicle else '-',
+            b.driver.name if b.driver else '-',
+            b.start_datetime.strftime('%d/%m/%Y'),
+            m.odometer_start if m else None,
+            m.odometer_end if m else None,
+            distance,
+            round(fuel, 2),
+            round(ot, 2),
+            round(total, 2),
+            EXP_LABEL.get(b.expense_type or '', 'ไม่ระบุ'),
+        ]
+        for ci, val in enumerate(row_data, 1):
+            cell = ws.cell(row=ri, column=ci, value=val)
+            cell.border    = border
+            cell.alignment = Alignment(horizontal='center' if ci in [1,7,8,9,10,11,12,13] else 'left')
+            if ri % 2 == 0:
+                cell.fill = PatternFill('solid', fgColor='F8FAFC')
+
+    # Total row
+    tr = len(bookings) + 2
+    ws.cell(row=tr, column=10, value='รวม').font = Font(bold=True)
+    ws.cell(row=tr, column=11, value=round(total_fuel, 2)).font = Font(bold=True)
+    ws.cell(row=tr, column=12, value=round(total_ot, 2)).font = Font(bold=True)
+    ws.cell(row=tr, column=13, value=round(total_all, 2)).font = Font(bold=True)
+
+    col_widths = [6,20,18,22,24,16,14,12,12,14,14,10,12,12]
+    for ci, w in enumerate(col_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+    ws.row_dimensions[1].height = 22
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fname = f"vehicle_cost_{sel_year}_{sel_month:02d}.xlsx"
+    return send_file(buf, as_attachment=True, download_name=fname,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+
+# ══════════════════════════════════════════════════════
+# Feature 6: Vehicle Service/Tax Date Update
+# ══════════════════════════════════════════════════════
+@adminfleet_bp.route('/admin/manage-fleet/service', methods=['POST'])
+@login_required
+def update_vehicle_service():
+    if not is_vehicle_admin():
+        flash('คุณไม่มีสิทธิ์', 'danger')
+        return redirect(url_for('adminfleet.manage_fleet'))
+
+    vid     = int(request.form.get('vehicle_id'))
+    vehicle = Vehicle.query.get_or_404(vid)
+
+    svc_date = request.form.get('next_service_date', '').strip()
+    svc_km   = request.form.get('next_service_km', '').strip()
+    tax_date = request.form.get('tax_due_date', '').strip()
+
+    vehicle.next_service_date = date.fromisoformat(svc_date) if svc_date else None
+    vehicle.next_service_km   = int(svc_km) if svc_km else None
+    vehicle.tax_due_date      = date.fromisoformat(tax_date) if tax_date else None
+    db.session.commit()
+    flash(f'อัปเดตวันนัดซ่อม/ต่อภาษี {vehicle.brand} {vehicle.model} เรียบร้อย', 'success')
+    return redirect(url_for('adminfleet.manage_fleet'))
