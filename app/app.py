@@ -44,10 +44,11 @@ app.register_blueprint(repair_bp)
 from views.maintenance_view import maintenance_bp 
 app.register_blueprint(maintenance_bp)
 
-from views.vehicle_view import vehicle_bp, adminfleet_bp, admincost_bp
+from views.vehicle_view import vehicle_bp, adminfleet_bp, admincost_bp, driver_bp
 app.register_blueprint(vehicle_bp)
 app.register_blueprint(adminfleet_bp)
 app.register_blueprint(admincost_bp)
+app.register_blueprint(driver_bp)
 
 from views.room_view import room_bp
 app.register_blueprint(room_bp)

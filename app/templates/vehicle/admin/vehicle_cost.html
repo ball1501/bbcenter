@@ -47,45 +47,70 @@
                 <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-pie me-2"></i> สรุปค่าใช้จ่ายรถ</h4>
                 <div style="opacity:.85;font-size:.9rem;">ค่าน้ำมัน + ค่า OT คนขับ แยกตามประเภทงาน</div>
             </div>
-            <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+                <a href="/admin/cost/export?year={{ sel_year }}&month={{ sel_month }}&expense_type={{ sel_expense }}"
+                   class="btn btn-success btn-sm fw-bold">
+                    <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Filter -->
+    <!-- Filter + ราคาน้ำมัน -->
     <div class="surface-card p-3 mb-4">
-        <form method="GET" action="/admin/cost" class="row g-2 align-items-end">
-            <div class="col-auto">
-                <label class="form-label small fw-bold mb-1">ปี (พ.ศ.)</label>
-                <select name="year" class="form-select form-select-sm">
-                    {% for y in range(now.year - 1, now.year + 2) %}
-                    <option value="{{ y }}" {% if y == sel_year %}selected{% endif %}>{{ y + 543 }}</option>
-                    {% endfor %}
-                </select>
+        <div class="row g-3">
+            <!-- filter -->
+            <div class="col-12 col-md-8">
+                <form method="GET" action="/admin/cost" class="row g-2 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">ปี (พ.ศ.)</label>
+                        <select name="year" class="form-select form-select-sm">
+                            {% for y in range(now.year - 1, now.year + 2) %}
+                            <option value="{{ y }}" {% if y == sel_year %}selected{% endif %}>{{ y + 543 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">เดือน</label>
+                        <select name="month" class="form-select form-select-sm">
+                            {% set th_months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'] %}
+                            {% for m in range(1, 13) %}
+                            <option value="{{ m }}" {% if m == sel_month %}selected{% endif %}>{{ th_months[m] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label small fw-bold mb-1">ประเภทค่าใช้จ่าย</label>
+                        <select name="expense_type" class="form-select form-select-sm">
+                            <option value="">ทั้งหมด</option>
+                            <option value="central"    {% if sel_expense == 'central'    %}selected{% endif %}>งานส่วนกลาง</option>
+                            <option value="department" {% if sel_expense == 'department' %}selected{% endif %}>งานหน่วยงาน</option>
+                            <option value="personal"   {% if sel_expense == 'personal'   %}selected{% endif %}>งานส่วนตัว</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                            <i class="fa-solid fa-magnifying-glass me-1"></i> ค้นหา
+                        </button>
+                    </div>
+                </form>
             </div>
-            <div class="col-auto">
-                <label class="form-label small fw-bold mb-1">เดือน</label>
-                <select name="month" class="form-select form-select-sm">
-                    {% set th_months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'] %}
-                    {% for m in range(1, 13) %}
-                    <option value="{{ m }}" {% if m == sel_month %}selected{% endif %}>{{ th_months[m] }}</option>
-                    {% endfor %}
-                </select>
+            <!-- ราคาน้ำมัน -->
+            <div class="col-12 col-md-4">
+                <form method="POST" action="/admin/cost" class="d-flex align-items-end gap-2">
+                    <input type="hidden" name="action" value="save_fuel_price">
+                    <div class="flex-grow-1">
+                        <label class="form-label small fw-bold mb-1">
+                            <i class="fa-solid fa-gas-pump me-1 text-warning"></i> ราคาน้ำมัน (บาท/ลิตร)
+                        </label>
+                        <input type="number" step="0.01" name="fuel_price" class="form-control form-control-sm"
+                               value="{{ fuel_price }}" min="1" max="999">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold">บันทึก</button>
+                </form>
             </div>
-            <div class="col-auto">
-                <label class="form-label small fw-bold mb-1">ประเภทค่าใช้จ่าย</label>
-                <select name="expense_type" class="form-select form-select-sm">
-                    <option value="">ทั้งหมด</option>
-                    <option value="central"    {% if sel_expense == 'central'    %}selected{% endif %}>งานส่วนกลาง</option>
-                    <option value="department" {% if sel_expense == 'department' %}selected{% endif %}>งานหน่วยงาน</option>
-                    <option value="personal"   {% if sel_expense == 'personal'   %}selected{% endif %}>งานส่วนตัว</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary btn-sm fw-bold">
-                    <i class="fa-solid fa-magnifying-glass me-1"></i> ค้นหา
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 
     <!-- Summary Cards -->
@@ -179,6 +204,16 @@
                         {% if r.fuel %}
                         <span class="fw-bold text-warning">{{ '{:,.0f}'.format(r.fuel) }}</span> <small>฿</small>
                         {% else %}<span class="text-muted">-</span>{% endif %}
+                        {% if current_user.is_superadmin or current_user.role_vehicle == 'admin' %}
+                        <br><button class="btn btn-xs btn-outline-warning mt-1 override-fuel-btn"
+                                style="font-size:.7rem;padding:2px 8px;border-radius:6px;"
+                                data-bs-toggle="modal" data-bs-target="#overrideFuelModal"
+                                data-id="{{ b.id }}"
+                                data-fuel="{{ r.fuel or 0 }}"
+                                data-label="#{{ b.id }} {{ b.destination }}">
+                            <i class="fa-solid fa-pen me-1"></i>แก้ไข
+                        </button>
+                        {% endif %}
                     </td>
                     <td>
                         {% if r.ot > 0 %}
@@ -233,6 +268,47 @@ $(document).ready(function() {
         pageLength: 50,
         footerCallback: function() { this.api().columns().footer(); }
     });
+});
+</script>
+<!-- Modal: Override ค่าน้ำมัน -->
+<div class="modal fade" id="overrideFuelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST" action="/vehicle/mileage/override-fuel">
+                <input type="hidden" name="booking_id" id="ofBookingId">
+                <div class="modal-header border-0" style="background:#FEF9C3;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold" style="color:#854D0E;">
+                        <i class="fa-solid fa-gas-pump me-2"></i> Override ค่าน้ำมัน
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-1" id="ofLabel"></p>
+                    <div class="p-2 mb-3 rounded-3" style="background:#FEF3C7;border:1px solid #FDE68A;font-size:.82rem;">
+                        <i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                        ค่าปกติคำนวณจาก odometer × fuel_rate × fuel_price<br>
+                        กรอกที่นี่เพื่อ <strong>override</strong> ด้วยยอดจริงจากสลิป
+                    </div>
+                    <label class="form-label small fw-bold">ค่าน้ำมัน (บาท) <span class="text-danger">*</span></label>
+                    <input type="number" name="fuel_cost" id="ofFuelInput" class="form-control" min="0" step="0.01" placeholder="เช่น 850.00" required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn fw-bold px-4" style="background:#CA8A04;color:#fff;border-radius:10px;">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('overrideFuelModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    document.getElementById('ofBookingId').value  = btn.dataset.id;
+    document.getElementById('ofLabel').textContent = btn.dataset.label;
+    document.getElementById('ofFuelInput').value  = btn.dataset.fuel || '';
 });
 </script>
 </body>

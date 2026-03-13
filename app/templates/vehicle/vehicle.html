@@ -279,12 +279,7 @@
                     </a>
                     <a href="{{ url_for('vehicle.mileage_log') }}" class="btn btn-sm fw-bold"
                         style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
-                        <i class="fa-solid fa-gauge-high me-1"></i> บันทึกเลขไมล์ (Driver)
-                    </a>
-                    {% elif current_user.role_vehicle == 'driver' %}
-                    <a href="{{ url_for('vehicle.mileage_log') }}" class="btn btn-sm fw-bold"
-                        style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;">
-                        <i class="fa-solid fa-gauge-high me-1"></i> บันทึกเลขไมล์ (Driver)
+                        <i class="fa-solid fa-gauge-high me-1"></i> บันทึกเลขไมล์ (Admin)
                     </a>
                     {% endif %}
                     <a href="{{ url_for('vehicle.calendar_view') }}" class="btn btn-sm fw-bold"

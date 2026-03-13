@@ -103,6 +103,10 @@ class Vehicle(db.Model):
     license_plate = db.Column(db.String(20), unique=True, nullable=False) # ทะเบียนรถ (ห้ามซ้ำ)
     capacity = db.Column(db.Integer, nullable=False)       # จำนวนที่นั่งสูงสุด
     status = db.Column(db.String(20), default='active')    # สถานะ: active (พร้อมใช้งาน), maintenance (ซ่อมบำรุง)
+    fuel_rate = db.Column(db.Float, default=10.0)          # อัตราสิ้นเปลือง กม./ลิตร
+    next_service_date = db.Column(db.Date, nullable=True)   # วันนัดเข้าศูนย์/เปลี่ยนน้ำมัน
+    next_service_km   = db.Column(db.Integer, nullable=True) # กม.ที่ต้องเข้าศูนย์ครั้งต่อไป
+    tax_due_date      = db.Column(db.Date, nullable=True)   # วันต่อภาษีรถ
 
 
 # ==========================================
@@ -112,7 +116,9 @@ class Driver(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
-    is_active = db.Column(db.Boolean, default=True) # เผื่ออนาคตคนขับลาออก/พักงาน
+    is_active = db.Column(db.Boolean, default=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # ผูกกับ User account
+    linked_user = db.relationship('User', foreign_keys=[user_id])
 
 
 # ==========================================
@@ -155,6 +161,7 @@ class VehicleBooking(db.Model):
 
     expense_type      = db.Column(db.String(20), nullable=True)
     central_category  = db.Column(db.String(50), nullable=True)
+    trip_department   = db.Column(db.String(100), nullable=True)  # แผนกที่รับผิดชอบค่าใช้จ่าย
 
 
 
@@ -190,3 +197,59 @@ class VehicleMileage(db.Model):
 
     booking          = db.relationship('VehicleBooking', backref='mileage')
     noter            = db.relationship('User', foreign_keys=[noted_by])
+
+    # ข้อ 1: รูปหน้าปัด
+    odometer_start_img = db.Column(db.String(255), nullable=True)
+    odometer_end_img   = db.Column(db.String(255), nullable=True)
+
+    # ข้อ 2: เติมน้ำมันระหว่างทาง
+    refuel        = db.Column(db.Boolean, default=False)
+    refuel_amount = db.Column(db.Float, default=0)
+    refuel_img    = db.Column(db.String(255), nullable=True)
+
+
+# ==========================================
+# 8. ตาราง SystemConfig (ค่า config กลาง)
+# ==========================================
+class SystemConfig(db.Model):
+    __tablename__ = 'system_config'
+    key   = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(100), nullable=False)
+
+    @staticmethod
+    def get(key, default=None):
+        row = SystemConfig.query.get(key)
+        return row.value if row else default
+
+    @staticmethod
+    def set(key, value):
+        row = SystemConfig.query.get(key)
+        if row:
+            row.value = str(value)
+        else:
+            db.session.add(SystemConfig(key=key, value=str(value)))
+        db.session.commit()
+
+
+# ==========================================
+# 9. ตาราง DepartmentBudget (งบประมาณแผนก)
+# ==========================================
+class DepartmentBudget(db.Model):
+    __tablename__ = 'department_budget'
+    id             = db.Column(db.Integer, primary_key=True)
+    department     = db.Column(db.String(100), nullable=False)
+    year           = db.Column(db.Integer, nullable=False)
+    month          = db.Column(db.Integer, nullable=False)
+    budget_amount  = db.Column(db.Float, default=0)   # งบที่ตั้งไว้
+    used_amount    = db.Column(db.Float, default=0)   # ใช้ไปแล้ว
+    __table_args__ = (db.UniqueConstraint('department', 'year', 'month'),)
+
+    @property
+    def remaining(self):
+        return self.budget_amount - self.used_amount
+
+    @property
+    def percent_used(self):
+        if self.budget_amount <= 0:
+            return 0
+        return min(round(self.used_amount / self.budget_amount * 100, 1), 100)

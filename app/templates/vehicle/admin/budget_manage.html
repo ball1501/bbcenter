@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการงบประมาณแผนก</title>
+    <link rel="icon" href="{{ url_for('static', filename='fonts/favicon_io/favicon-32x32.png') }}">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fontawesome/css/all.min.css') }}">
+    <style>
+        body { background:#F0F2F5; font-family:'Sarabun', sans-serif; }
+        .page-hero {
+            background: linear-gradient(135deg, #1E3A5F 0%, #1D4ED8 60%, #3B82F6 100%);
+            border-radius:16px; padding:28px 32px; margin-bottom:24px; color:#fff;
+        }
+        .surface-card { background:#fff; border-radius:14px; border:none; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+        .budget-bar-wrap { background:#E5E7EB; border-radius:99px; height:8px; overflow:hidden; }
+        .budget-bar { height:8px; border-radius:99px; transition:width .4s; }
+        .bar-danger  { background:#EF4444; }
+        .bar-warning { background:#F59E0B; }
+        .bar-primary { background:#3B82F6; }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+
+<div class="container py-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert" style="border-radius:10px;">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- Hero -->
+    <div class="page-hero">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h4 class="fw-bold mb-1"><i class="fa-solid fa-building-columns me-2"></i> งบประมาณแผนก</h4>
+                <div style="opacity:.85;font-size:.9rem;">ตั้งงบ — ระบบหักอัตโนมัติเมื่อปิดทริป</div>
+            </div>
+            <span class="badge bg-white text-dark px-3 py-2 fw-bold">{{ month_label }}</span>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="surface-card p-3 mb-4">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-1">ปี (พ.ศ.)</label>
+                <select name="year" class="form-select form-select-sm">
+                    {% for y in range(now.year - 1, now.year + 2) %}
+                    <option value="{{ y }}" {% if y == sel_year %}selected{% endif %}>{{ y + 543 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small fw-bold mb-1">เดือน</label>
+                <select name="month" class="form-select form-select-sm">
+                    {% set th_months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'] %}
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == sel_month %}selected{% endif %}>{{ th_months[m] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> ดู
+                </button>
+            </div>
+            <div class="col-auto ms-auto">
+                <button type="button" class="btn btn-success btn-sm fw-bold"
+                        data-bs-toggle="modal" data-bs-target="#setBudgetModal">
+                    <i class="fa-solid fa-plus me-1"></i> ตั้งงบแผนก
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Budget Cards -->
+    {% if budgets %}
+    <div class="row g-3 mb-4">
+        {% for b in budgets %}
+        <div class="col-md-6 col-lg-4">
+            <div class="surface-card p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="fw-bold" style="font-size:.95rem;">🏢 {{ b.department }}</div>
+                    <button class="btn btn-xs btn-outline-secondary"
+                            style="font-size:.7rem;padding:2px 8px;border-radius:6px;"
+                            data-bs-toggle="modal" data-bs-target="#setBudgetModal"
+                            data-dept="{{ b.department }}"
+                            data-amount="{{ b.budget_amount }}">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+                <div class="mb-1 d-flex justify-content-between" style="font-size:.82rem;">
+                    <span class="text-muted">ใช้ไป</span>
+                    <span class="fw-bold
+                        {% if b.pct >= 90 %}text-danger
+                        {% elif b.pct >= 70 %}text-warning
+                        {% else %}text-primary{% endif %}">
+                        {{ b.pct }}%
+                    </span>
+                </div>
+                <div class="budget-bar-wrap mb-2">
+                    <div class="budget-bar
+                        {% if b.pct >= 90 %}bar-danger
+                        {% elif b.pct >= 70 %}bar-warning
+                        {% else %}bar-primary{% endif %}"
+                        style="width:{{ b.pct }}%;">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:.85rem;">
+                    <span class="text-danger fw-bold">{{ '{:,.0f}'.format(b.used_amount) }} ฿</span>
+                    <span class="text-muted">/ {{ '{:,.0f}'.format(b.budget_amount) }} ฿</span>
+                </div>
+                <div class="mt-2 p-2 rounded-3 text-center
+                    {% if b.remaining < 0 %}bg-danger bg-opacity-10{% else %}bg-light{% endif %}"
+                    style="font-size:.8rem;">
+                    {% if b.remaining < 0 %}
+                    <span class="text-danger fw-bold">⚠️ เกินงบ {{ '{:,.0f}'.format(-b.remaining) }} ฿</span>
+                    {% else %}
+                    <span class="text-muted">คงเหลือ</span>
+                    <span class="fw-bold ms-1 text-success">{{ '{:,.0f}'.format(b.remaining) }} ฿</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="surface-card p-5 text-center text-muted">
+        <div style="font-size:2.5rem;">📊</div>
+        <div class="fw-bold mt-2">ยังไม่มีการตั้งงบเดือนนี้</div>
+        <div class="small">กดปุ่ม "ตั้งงบแผนก" เพื่อเริ่มต้น</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: ตั้งงบ -->
+<div class="modal fade" id="setBudgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <form method="POST">
+                <input type="hidden" name="action" value="set_budget">
+                <input type="hidden" name="year" value="{{ sel_year }}">
+                <input type="hidden" name="month" value="{{ sel_month }}">
+                <div class="modal-header border-0" style="background:#EFF6FF;border-radius:16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold text-primary">
+                        <i class="fa-solid fa-building-columns me-2"></i> ตั้งงบประมาณแผนก
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">แผนก / กอง</label>
+                        <input type="text" name="department" id="sbDept" class="form-control"
+                               list="sbDeptList" placeholder="พิมพ์ชื่อแผนก" required>
+                        <datalist id="sbDeptList">
+                            {% for d in departments %}
+                            <option value="{{ d }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">งบประมาณ (บาท/เดือน)</label>
+                        <input type="number" name="budget_amount" id="sbAmount" class="form-control"
+                               min="0" step="100" placeholder="เช่น 10000" required>
+                    </div>
+                    <div class="p-2 rounded-3" style="background:#FEF9C3;border:1px solid #FDE68A;font-size:.8rem;">
+                        <i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                        ตั้งงบสำหรับ <strong>{{ month_label }}</strong> — ถ้ามีอยู่แล้วจะอัปเดตทับ
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="fa-solid fa-save me-1"></i> บันทึก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script>
+document.getElementById('setBudgetModal').addEventListener('show.bs.modal', function(e) {
+    const btn = e.relatedTarget;
+    if (btn && btn.dataset.dept) {
+        document.getElementById('sbDept').value   = btn.dataset.dept;
+        document.getElementById('sbAmount').value = btn.dataset.amount || '';
+    } else {
+        document.getElementById('sbDept').value   = '';
+        document.getElementById('sbAmount').value = '';
+    }
+});
+</script>
+</body>
+</html>

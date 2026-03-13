@@ -40,78 +40,105 @@
                             <th>Username</th>
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน</th>
-                            <th>แจ้งซ่อมIT</th>
-                            <th>แจ้งซ่อมบำรุงรักษา</th>
-                            <th>จองรถ</th>
-                            <th>จองห้อง</th>
-                            <th class="text-center">Super Admin</th>
                             <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
-                            <td data-order="{{ user.id }}">{{ user.id }}</td>
+                            <td>{{ user.id }}</td>
                             <td>{{ user.username }}</td>
                             <td>{{ user.full_name or '-' }}</td>
-                            <td>
-                                <select name="department" form="form_{{ user.id }}" class="form-select form-select-sm">
-                                    <option value="" {% if user.department == '' %}selected{% endif %}>--เลือกหน่วยงาน--</option>
-                                    <option value="กองสนับสนุนและบริการ" {% if user.department == 'กองสนับสนุนและบริการ' %}selected{% endif %}>กองสนับสนุนและบริการ</option>
-                                    <option value="กองวิชาการ" {% if user.department == 'กองวิชาการ' %}selected{% endif %}>กองวิชาการ</option>
-                                    <option value="กองDOU" {% if user.department == 'กองDOU' %}selected{% endif %}>กองDOU</option>
-                                    <option value="กองบริหาร" {% if user.department == 'กองบริหาร' %}selected{% endif %}>กองบริหาร</option>
-                                    <option value="กองเลขานุการ" {% if user.department == 'กองเลขานุการ' %}selected{% endif %}>กองเลขานุการ</option>
-                                    <option value="กองกิจการนิสิต" {% if user.department == 'กองกิจการนิสิต' %}selected{% endif %}>กองกิจการนิสิต</option>
-                                    <option value="กองพระไตรปิฏก" {% if user.department == 'กองพระไตรปิฏก' %}selected{% endif %}>กองพระไตรปิฏก</option>
-                                </select>
-                            </td>
-                            
-                            <td>
-                                <select name="role_repair" form="form_{{ user.id }}" class="form-select form-select-sm">
-                                    <option value="user" {% if user.role_repair == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
-                                    <option value="admin" {% if user.role_repair == 'admin' %}selected{% endif %}>ผู้จัดการช่างIT(admin)</option>
-                                    <option value="technician" {% if user.role_repair == 'technician' %}selected{% endif %}>ช่างซ่อมIT</option>
-                                </select>
-                            </td>
-
-                            <td>
-                                <select name="role_maintenance" form="form_{{ user.id }}" class="form-select form-select-sm">
-                                    <option value="user" {% if user.role_maintenance == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
-                                    <option value="admin" {% if user.role_maintenance == 'admin' %}selected{% endif %}>ผู้จัดการช่างบำรุงรักษา(admin)</option>
-                                    <option value="technician" {% if user.role_maintenance == 'technician' %}selected{% endif %}>ช่างซ่อมบำรุงรักษา</option>
-                                </select>
-                            </td>
-
-                            <td>
-                                <select name="role_vehicle" form="form_{{ user.id }}" class="form-select form-select-sm">
-                                    <option value="user" {% if user.role_vehicle == 'user' %}selected{% endif %}>ผู้จอง</option>
-                                    <option value="admin" {% if user.role_vehicle == 'admin' %}selected{% endif %}>ผู้ดูแลคิวรถ(admin)</option>
-                                    <option value="approver" {% if user.role_vehicle == 'approver' %}selected{% endif %}>ผู้อนุมัติ(ผู้จัดการกอง)</option>
-                                    <option value="driver" {% if user.role_vehicle == 'driver' %}selected{% endif %}>ผู้ขับรถ(Driver)</option>
-                                </select>
-                            </td>
-
-                            <td>
-                                <select name="role_room" form="form_{{ user.id }}" class="form-select form-select-sm">
-                                    <option value="user" {% if user.role_room == 'user' %}selected{% endif %}>ผู้ใช้ทั่วไป</option>
-                                    <option value="admin" {% if user.role_room == 'admin' %}selected{% endif %}>ผู้ดูแลห้อง</option>
-                                </select>
-                            </td>
-
+                            <td>{{ user.department or '-' }}</td>
                             <td class="text-center">
-                                <input class="form-check-input" type="checkbox" name="is_superadmin" value="1" form="form_{{ user.id }}" {% if user.is_superadmin %}checked{% endif %}>
-                            </td>
-
-                            <td class="text-center">
-                                <form id="form_{{ user.id }}" action="/update_user/{{ user.id }}" method="POST" class="m-0 p-0">
-                                    <button type="submit" class="btn btn-primary btn-sm w-100">บันทึก</button>
-                                </form>
+                                <button type="button" class="btn btn-warning btn-sm btn-edit"
+                                    data-id="{{ user.id }}"
+                                    data-department="{{ user.department }}"
+                                    data-role_repair="{{ user.role_repair }}"
+                                    data-role_maintenance="{{ user.role_maintenance }}"
+                                    data-role_vehicle="{{ user.role_vehicle }}"
+                                    data-role_room="{{ user.role_room }}"
+                                    data-is_superadmin="{{ '1' if user.is_superadmin else '0' }}">
+                                    <i class="fas fa-edit"></i> แก้ไขสิทธิ์
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal edit role user -->
+    <div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="editRoleForm" method="POST" action="">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fas fa-user-cog"></i> แก้ไขสิทธิ์การใช้งาน</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">หน่วยงาน</label>
+                                <select name="department" id="modal_department" class="form-select">
+                                    <option value="">--เลือกหน่วยงาน--</option>
+                                    <option value="กองสนับสนุนและบริการ">กองสนับสนุนและบริการ</option>
+                                    <option value="กองวิชาการ">กองวิชาการ</option>
+                                    <option value="กองDOU">กองDOU</option>
+                                    <option value="กองบริหาร">กองบริหาร</option>
+                                    <option value="กองเลขานุการ">กองเลขานุการ</option>
+                                    <option value="กองกิจการนิสิต">กองกิจการนิสิต</option>
+                                    <option value="กองพระไตรปิฏก">กองพระไตรปิฏก</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">แจ้งซ่อม IT</label>
+                                <select name="role_repair" id="modal_role_repair" class="form-select">
+                                    <option value="user">ผู้ใช้ทั่วไป</option>
+                                    <option value="admin">ผู้จัดการช่างIT(admin)</option>
+                                    <option value="technician">ช่างซ่อมIT</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">แจ้งซ่อมบำรุงรักษา</label>
+                                <select name="role_maintenance" id="modal_role_maintenance" class="form-select">
+                                    <option value="user">ผู้ใช้ทั่วไป</option>
+                                    <option value="admin">ผู้จัดการช่างบำรุงรักษา(admin)</option>
+                                    <option value="technician">ช่างซ่อมบำรุงรักษา</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">จองรถ</label>
+                                <select name="role_vehicle" id="modal_role_vehicle" class="form-select">
+                                    <option value="user">ผู้จอง</option>
+                                    <option value="admin">ผู้ดูแลคิวรถ(admin)</option>
+                                    <option value="approver">ผู้อนุมัติ(ผู้จัดการกอง)</option>
+                                    <option value="driver">ผู้ขับรถ(Driver)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">จองห้อง</label>
+                                <select name="role_room" id="modal_role_room" class="form-select">
+                                    <option value="user">ผู้ใช้ทั่วไป</option>
+                                    <option value="admin">ผู้ดูแลห้อง</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mt-4">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" name="is_superadmin" id="modal_is_superadmin" value="1">
+                                    <label class="form-check-label fw-bold text-danger" for="modal_is_superadmin">ให้สิทธิ์ Super Admin</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -126,10 +153,38 @@
 
 <script>
     $(document).ready(function() {
+        // 1. เรียกใช้งาน DataTables
         $('#userTable').DataTable({
             responsive: true,
             language: { url: "{{ url_for('static', filename='vendor/datatables/json/th.json') }}" },
             order: [[0, 'desc']]
+        });
+
+        // 2. ดักจับตอนกดปุ่ม "แก้ไขสิทธิ์"
+        $('#userTable tbody').on('click', '.btn-edit', function() {
+            var btn = $(this);
+            var userId = btn.data('id');
+
+            // 🌟 2.1 เปลี่ยน URL ของ Form ให้ชี้ไปที่ User คนที่ถูกคลิก
+            $('#editRoleForm').attr('action', '/update_user/' + userId);
+
+            // 🌟 2.2 โยนข้อมูลจากปุ่มเข้าไปเซ็ตค่าใน Modal
+            $('#modal_department').val(btn.data('department'));
+            $('#modal_role_repair').val(btn.data('role_repair'));
+            $('#modal_role_maintenance').val(btn.data('role_maintenance'));
+            $('#modal_role_vehicle').val(btn.data('role_vehicle'));
+            $('#modal_role_room').val(btn.data('role_room'));
+
+            // 🌟 2.3 เช็ค Checkbox Super Admin
+            if (btn.data('is_superadmin') == '1') {
+                $('#modal_is_superadmin').prop('checked', true);
+            } else {
+                $('#modal_is_superadmin').prop('checked', false);
+            }
+
+            // 🌟 2.4 สั่งเปิด Modal
+            var myModal = new bootstrap.Modal(document.getElementById('editRoleModal'));
+            myModal.show();
         });
     });
 </script>

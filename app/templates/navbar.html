@@ -29,12 +29,18 @@
                 {% if current_user.role_vehicle in ['admin'] or current_user.is_superadmin == True %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.blueprint == 'adminfleet' %}active fw-bold text-info{% endif %}" href="/admin/manage-fleet">
-                            <i class="fa-solid fa-gears me-1"></i> ระบบจัดการรถ (Admin)
+                            <i class="fa-solid fa-gears me-1"></i> ระบบจัดการรถและงบประมาณ (Admin)
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.blueprint == 'admincost' %}active fw-bold text-info{% endif %}" href="/admin/cost">
                             <i class="fa-solid fa-chart-pie me-1"></i> ระบบสรุปค่าใช้จ่ายรถ (Admin)
+                        </a>
+                    </li>
+                {% elif current_user.role_vehicle in ['driver'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.blueprint == 'driver' %}active fw-bold text-info{% endif %}" href="/driver">
+                            <i class="fa-solid fa-car-on"></i> งานวันนี้ (Driver)
                         </a>
                     </li>
                 {% endif %}
