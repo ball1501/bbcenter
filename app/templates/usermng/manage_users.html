@@ -40,6 +40,10 @@
                             <th>Username</th>
                             <th>ชื่อ-นามสกุล</th>
                             <th>หน่วยงาน</th>
+                            <th>Role Repair</th>
+                            <th>Role Maintenance</th>
+                            <th>Role Vehicle</th>
+                            <th>Role Room</th>
                             <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
@@ -50,6 +54,10 @@
                             <td>{{ user.username }}</td>
                             <td>{{ user.full_name or '-' }}</td>
                             <td>{{ user.department or '-' }}</td>
+                            <td>{{ user.role_repair or '-' }}</td>
+                            <td>{{ user.role_maintenance or '-' }}</td>
+                            <td>{{ user.role_vehicle or '-' }}</td>
+                            <td>{{ user.role_room or '-' }}</td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-warning btn-sm btn-edit"
                                     data-id="{{ user.id }}"
@@ -98,7 +106,7 @@
                                 <label class="form-label fw-bold">แจ้งซ่อม IT</label>
                                 <select name="role_repair" id="modal_role_repair" class="form-select">
                                     <option value="user">ผู้ใช้ทั่วไป</option>
-                                    <option value="admin">ผู้จัดการช่างIT(admin)</option>
+                                    <option value="admin">ผู้จัดการช่างIT(Admin)</option>
                                     <option value="technician">ช่างซ่อมIT</option>
                                 </select>
                             </div>
