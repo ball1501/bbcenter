@@ -171,7 +171,7 @@ def api_bookings():
         vehicle_label = f"{b.assigned_vehicle.brand} {b.assigned_vehicle.model}" if b.assigned_vehicle else "รอกำหนดรถ"
         events.append({
             'id':    b.id,
-            'title': f"{vehicle_label} ({b.user.full_name or b.user.username})",
+            'title': f"{b.destination} ({b.user.full_name or b.user.username})",
             'start': b.start_datetime.isoformat() if b.start_datetime else None,
             'end':   b.end_datetime.isoformat()   if b.end_datetime   else None,
             'color': color,
