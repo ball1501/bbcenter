@@ -478,15 +478,13 @@ def admin_assign(booking_id):
     return redirect(url_for('vehicle.admin_trips'))
 
 # ─────────────────────────────────────────────
-# กรอกไมล์ (คนขับ + superadmin)
+# กรอกไมล์ (admin + superadmin)
 # ─────────────────────────────────────────────
-def is_driver():
-    return current_user.role_vehicle == 'driver' or current_user.is_superadmin
 
 @vehicle_bp.route('/vehicle/mileage', methods=['GET', 'POST'])
 @login_required
 def mileage_log():
-    if not is_driver():
+    if not is_vehicle_admin():
         flash('คุณไม่มีสิทธิ์เข้าหน้านี้', 'danger')
         return redirect(url_for('vehicle.index'))
 
