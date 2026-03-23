@@ -140,10 +140,6 @@ def delete_booking(booking_id):
 def detail_booking(booking_id):
     booking = VehicleBooking.query.get_or_404(booking_id)
 
-    if current_user.role_vehicle not in ['approver', 'admin'] and not current_user.is_superadmin and current_user.id != booking.user_id:
-        flash('คุณไม่มีสิทธิ์เข้าถึงข้อมูลนี้', 'danger')
-        return redirect(url_for('vehicle.index'))
-
     drivers = Driver.query.filter_by(is_active=True).all()
     return render_template('vehicle/vehicle_detail.html', booking=booking, drivers=drivers)
 
