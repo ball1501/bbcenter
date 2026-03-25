@@ -29,7 +29,7 @@ def login():
                 db.session.commit()
 
             session.permanent = True        # ← เพิ่มตรงนี้
-            login_user(user, remember=True) # ← แก้ตรงนี้
+            login_user(user, remember=False)  # หมดอายุตาม PERMANENT_SESSION_LIFETIME (8 ชม.)
 
             return redirect(url_for('auth.dashboard'))
         else:
