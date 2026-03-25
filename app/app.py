@@ -7,9 +7,10 @@ from datetime import timedelta
 from models import Vehicle # อย่าลืม import Vehicle ด้านบนด้วยนะถ้ายังไม่มี ชั่วคราว
 
 # โหลดตัวแปรจากไฟล์ .env
-load_dotenv()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY')
