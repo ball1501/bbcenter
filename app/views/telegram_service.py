@@ -2,7 +2,8 @@ import requests
 from datetime import datetime
 
 TELEGRAM_BOT_TOKEN     = "8630024542:AAFR-VaVpp75CwE2u_0IJY1U43oTFzq9rLM"
-TELEGRAM_GROUP_CHAT_ID = "-5275480755"
+# TELEGRAM_GROUP_CHAT_ID = "-5275480755"
+TELEGRAM_GROUP_CHAT_ID = "-1003856836654"
 
 TH_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
              'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
